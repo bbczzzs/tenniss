@@ -12,13 +12,30 @@
   html,body { width:100%; height:100%; overflow:hidden; background:#aee7ff; font-family:'Trebuchet MS', sans-serif; touch-action:none; }
   canvas { display:block; }
   #hud {
-    position:fixed; top:12px; left:50%; transform:translateX(-50%);
-    background:rgba(255,255,255,0.85); border-radius:18px; padding:6px 20px;
-    box-shadow:0 4px 14px rgba(60,90,40,0.25); text-align:center; pointer-events:none;
-    border:3px solid #ffd166; z-index:5;
+    position:fixed; top:14px; left:50%; transform:translateX(-50%);
+    display:flex; align-items:center; gap:18px;
+    background:rgba(197,206,195,0.92); border:1.5px solid #222c38;
+    padding:9px 22px; pointer-events:none; z-index:5;
+    font-family:'Space Mono','Courier New',monospace;
+    box-shadow:0 6px 22px rgba(20,30,20,0.25);
   }
-  #hud .score { font-size:24px; font-weight:bold; color:#2d6a4f; letter-spacing:2px; }
-  #hud .label { font-size:10px; color:#7a9e7e; text-transform:uppercase; letter-spacing:1px; }
+  #hud::before, #hud::after {
+    content:''; position:absolute; width:10px; height:10px;
+    border:0 solid #222c38;
+  }
+  #hud::before { top:-5px; left:-5px; border-top-width:1.5px; border-left-width:1.5px; }
+  #hud::after  { bottom:-5px; right:-5px; border-bottom-width:1.5px; border-right-width:1.5px; }
+  #hud .hudName {
+    font-size:10px; font-weight:700; letter-spacing:3px; color:rgba(34,44,56,0.65);
+    text-transform:uppercase; display:flex; align-items:center; gap:7px;
+  }
+  #hud .hudName::before { content:''; width:7px; height:7px; background:#222c38; }
+  #hud .hudName.right { flex-direction:row-reverse; }
+  #hud .score {
+    font-size:24px; font-weight:700; color:#222c38; letter-spacing:4px;
+    display:flex; align-items:center; gap:10px; line-height:1;
+  }
+  #hud .score i { font-style:normal; font-size:15px; color:rgba(34,44,56,0.4); }
   #msg {
     position:fixed; bottom:120px; left:50%; transform:translateX(-50%);
     background:rgba(45,106,79,0.88); color:#fffbe8; border-radius:14px;
@@ -265,8 +282,9 @@
 </head>
 <body>
 <div id="hud">
-  <div class="label">You · Garden Open · Rival</div>
-  <div class="score"><span id="s1">0</span> — <span id="s2">0</span></div>
+  <span class="hudName">You</span>
+  <div class="score"><span id="s1">0</span><i>—</i><span id="s2">0</span></div>
+  <span class="hudName right">Rival</span>
 </div>
 <div id="ctrlHint">WASD move · Shift sprint · LMB hit · F smash · RMB lob · E drop · Q slice · Space dive</div>
 <div id="msg">Tap / click to serve!</div>
@@ -560,29 +578,216 @@ for(let i=0;i<18;i++){
 }
 function makeBench(){
   const g=new THREE.Group();
-  const seat=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.12,0.55),mat(C.wood));
-  seat.position.y=0.5;seat.castShadow=true;g.add(seat);
-  const back=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.5,0.1),mat(C.wood));
-  back.position.set(0,0.85,-0.24);back.castShadow=true;g.add(back);
-  [-0.9,0.9].forEach(x=>{
-    const leg=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.5,0.5),mat(C.woodDk));
-    leg.position.set(x,0.25,0);g.add(leg);
+  const iron=mat(0x39404a,{roughness:0.7});
+  const woods=[0xb0783f,0xa9713f,0x9c6939];
+  // slatted seat (3 planks with gaps)
+  [-0.19,0,0.19].forEach((z,i)=>{
+    const slat=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.06,0.15),mat(woods[i%3]));
+    slat.position.set(0,0.5,z);slat.castShadow=true;g.add(slat);
   });
+  // slatted backrest (2 rails, slightly reclined)
+  [[0.78,-0.30],[0.97,-0.34]].forEach(([y,z],i)=>{
+    const rail=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.13,0.055),mat(woods[(i+1)%3]));
+    rail.position.set(0,y,z);rail.rotation.x=-0.16;rail.castShadow=true;g.add(rail);
+  });
+  // iron side frames: leg + back support + armrest each side
+  [-1.0,1.0].forEach(x=>{
+    const legF=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.5,0.07),iron);
+    legF.position.set(x,0.25,0.2);legF.castShadow=true;g.add(legF);
+    const legB=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.5,0.07),iron);
+    legB.position.set(x,0.25,-0.22);legB.castShadow=true;g.add(legB);
+    const backBar=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.62,0.07),iron);
+    backBar.position.set(x,0.78,-0.30);backBar.rotation.x=-0.16;g.add(backBar);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.06,0.55),mat(0x8a5a2e));
+    arm.position.set(x,0.72,-0.02);arm.castShadow=true;g.add(arm);
+    const armPost=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.2,0.06),iron);
+    armPost.position.set(x,0.6,0.18);g.add(armPost);
+    const foot=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.05,0.55),iron);
+    foot.position.set(x,0.03,0);g.add(foot);
+  });
+  // cross brace under the seat
+  const brace=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.05,0.05),iron);
+  brace.position.set(0,0.34,0);g.add(brace);
   return g;
 }
 [[-9.5,-6,Math.PI/2],[-9.5,4,Math.PI/2],[9.5,-3,-Math.PI/2],[9.5,6,-Math.PI/2]].forEach(([x,z,ry])=>{
   const b=makeBench();b.position.set(x,0.3,z);b.rotation.y=ry;scene.add(b);
 });
+
+/* ============================================================
+   JAPANESE GARDEN SIDES — sakura trees with falling petals,
+   stone lanterns (toro), bamboo clusters, stepping stones and
+   pink azalea bushes flanking the court. All outside play bounds.
+   ============================================================ */
+const SAKURA_PINKS=[0xffb7d0,0xff9ec5,0xffd3e0,0xffc2da,0xffe0ec];
+const sakuraSpots=[];   // petal spawn zones
+function makeSakura(scale=1){
+  const g=new THREE.Group();
+  // gnarled trunk: main + two tilted branches
+  const trunkMat=mat(0x5c4433);
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.16*scale,0.26*scale,1.5*scale,6),trunkMat);
+  trunk.position.y=0.75*scale; trunk.rotation.z=0.08; trunk.castShadow=true; g.add(trunk);
+  [[0.5,0.35],[-0.45,-0.42]].forEach(([bx,rz],i)=>{
+    const br=new THREE.Mesh(new THREE.CylinderGeometry(0.07*scale,0.11*scale,1.0*scale,5),trunkMat);
+    br.position.set(bx*scale,(1.55+i*0.1)*scale,rand(-0.15,0.15)*scale);
+    br.rotation.z=rz; br.castShadow=true; g.add(br);
+  });
+  // blossom canopy: puffy pink clusters
+  const canopy=new THREE.Group();
+  const blobs=5+(Math.random()*3|0);
+  for(let i=0;i<blobs;i++){
+    const b=new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.55,0.95)*scale,0),
+      mat(pick(SAKURA_PINKS),{roughness:0.85}));
+    b.position.set(rand(-0.85,0.85)*scale,(2.0+rand(0,0.9))*scale,rand(-0.7,0.7)*scale);
+    b.castShadow=true; canopy.add(b);
+  }
+  // a couple of low blossom tufts on the branches
+  for(let i=0;i<2;i++){
+    const b=new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.3,0.45)*scale,0),
+      mat(pick(SAKURA_PINKS)));
+    b.position.set(pick([-1,1])*rand(0.6,0.95)*scale,rand(1.5,1.9)*scale,rand(-0.3,0.3)*scale);
+    canopy.add(b);
+  }
+  g.add(canopy);
+  windTargets.push({obj:canopy,phase:rand(0,6.28),amp:0.03});
+  return g;
+}
+function makeLantern(){
+  const g=new THREE.Group();
+  const stone=mat(0x9aa09a,{roughness:1});
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.36,0.14,6),stone);
+  base.position.y=0.07; base.castShadow=true; g.add(base);
+  const post=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.13,0.55,6),stone);
+  post.position.y=0.42; g.add(post);
+  const shelf=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.2,0.1,6),stone);
+  shelf.position.y=0.74; g.add(shelf);
+  // light box with warm glowing windows
+  const box=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.3,6),stone);
+  box.position.y=0.94; box.castShadow=true; g.add(box);
+  const glow=new THREE.Mesh(new THREE.CylinderGeometry(0.145,0.145,0.2,6),
+    new THREE.MeshStandardMaterial({color:0xffedb8,emissive:0xffd98a,emissiveIntensity:1.4}));
+  glow.position.y=0.94; g.add(glow);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(0.34,0.24,6),stone);
+  roof.position.y=1.2; roof.castShadow=true; g.add(roof);
+  const knob=new THREE.Mesh(new THREE.SphereGeometry(0.06,6,5),stone);
+  knob.position.y=1.36; g.add(knob);
+  return g;
+}
+function makeBamboo(){
+  const g=new THREE.Group();
+  const n=4+(Math.random()*3|0);
+  for(let i=0;i<n;i++){
+    const h=rand(2.1,3.2);
+    const stalk=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.055,h,5),
+      mat(pick([0x7dbb5c,0x8fca6a,0x6fae54]),{roughness:0.8}));
+    stalk.position.set(rand(-0.45,0.45),h/2,rand(-0.45,0.45));
+    stalk.rotation.z=rand(-0.05,0.05);
+    stalk.castShadow=true;
+    g.add(stalk);
+    // little leaf fan near the top
+    for(let j=0;j<2;j++){
+      const leaf=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.4,4),mat(0x5fa348));
+      leaf.position.set(stalk.position.x+rand(-0.12,0.12),h-rand(0.1,0.5),stalk.position.z+rand(-0.12,0.12));
+      leaf.rotation.z=rand(0.7,1.2)*pick([-1,1]);
+      g.add(leaf);
+    }
+  }
+  windTargets.push({obj:g,phase:rand(0,6.28),amp:0.025});
+  return g;
+}
+// --- place it all, mirrored on both sides ---
+[[-1],[1]].forEach(([side])=>{
+  // sakura trees
+  [[-10.5,rand(1.0,1.2)],[0.8,rand(1.15,1.35)],[10.5,rand(0.95,1.15)]].forEach(([z,s])=>{
+    const t=makeSakura(s);
+    const x=side*rand(11.2,12.8);
+    t.position.set(x,0.05,z+rand(-0.8,0.8));
+    t.rotation.y=rand(0,6.28);
+    scene.add(t);
+    sakuraSpots.push({x,z,r:1.6*s});
+  });
+  // stone lanterns near the corners
+  [[-13.2],[13.2]].forEach(([z])=>{
+    const l=makeLantern();
+    l.position.set(side*9.3,0.3,z);
+    l.rotation.y=rand(0,6.28);
+    scene.add(l);
+  });
+  // bamboo clusters
+  const b1=makeBamboo();
+  b1.position.set(side*rand(13.6,14.6),0.05,rand(-6,-3));
+  scene.add(b1);
+  const b2=makeBamboo();
+  b2.position.set(side*rand(13.4,14.4),0.05,rand(4,7));
+  scene.add(b2);
+  // stepping stones running along the side
+  for(let i=0;i<6;i++){
+    const st=new THREE.Mesh(new THREE.CylinderGeometry(rand(0.22,0.3),rand(0.24,0.32),0.07,7),
+      mat(pick([0xb9beb6,0xa8ada5,0xc4c8c0]),{roughness:1}));
+    st.position.set(side*(10.2+Math.sin(i*1.3)*0.4),0.34,-11+i*4.4+rand(-0.5,0.5));
+    st.receiveShadow=true;
+    scene.add(st);
+  }
+  // pink azalea bushes at the court corners
+  [[-14.6],[14.6]].forEach(([z])=>{
+    const bush=new THREE.Group();
+    for(let j=0;j<4;j++){
+      const b=new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.28,0.45),0),
+        mat(pick([0xff8fb1,0xff9ec5,0x59b93c,0xffb7d0])));
+      b.position.set(rand(-0.4,0.4),rand(0.2,0.45),rand(-0.4,0.4));
+      b.castShadow=true;bush.add(b);
+    }
+    bush.position.set(side*8.8,0.3,z);
+    windTargets.push({obj:bush,phase:rand(0,6.28),amp:0.02});
+    scene.add(bush);
+  });
+});
+// --- falling sakura petals ---
+const petals=[];
+{
+  const pg=new THREE.PlaneGeometry(0.1,0.13);
+  for(let i=0;i<34;i++){
+    const p=new THREE.Mesh(pg,mat(pick(SAKURA_PINKS),{side:THREE.DoubleSide,roughness:0.7}));
+    const s=pick(sakuraSpots);
+    p.position.set(s.x+rand(-s.r,s.r),rand(1.5,3.6),s.z+rand(-s.r,s.r));
+    scene.add(p);
+    petals.push({m:p,vy:rand(0.18,0.38),phase:rand(0,6.28),spin:rand(1,3)});
+  }
+}
 // scoreboard
-const scoreCanvas=document.createElement('canvas');scoreCanvas.width=256;scoreCanvas.height=128;
+const scoreCanvas=document.createElement('canvas');scoreCanvas.width=512;scoreCanvas.height=256;
 const sctx=scoreCanvas.getContext('2d');
 const scoreTex=new THREE.CanvasTexture(scoreCanvas);
+scoreTex.anisotropy=4;
 function drawScore(a,b){
-  sctx.fillStyle='#20313b';sctx.fillRect(0,0,256,128);
-  sctx.fillStyle='#ffd166';sctx.font='bold 22px Trebuchet MS';sctx.textAlign='center';
-  sctx.fillText('GARDEN OPEN',128,30);
-  sctx.fillStyle='#fff';sctx.font='bold 56px Trebuchet MS';
-  sctx.fillText(a+' - '+b,128,95);scoreTex.needsUpdate=true;
+  const W=512,H=256,INK='#f5ead1',DIM='rgba(245,234,209,0.55)';
+  // deep ink board
+  sctx.fillStyle='#1b232e';sctx.fillRect(0,0,W,H);
+  sctx.fillStyle='#222c38';sctx.fillRect(6,6,W-12,H-12);
+  // corner crop marks
+  sctx.strokeStyle=INK;sctx.lineWidth=3;
+  const M=22,L=20;
+  [[M,M,1,1],[W-M,M,-1,1],[M,H-M,1,-1],[W-M,H-M,-1,-1]].forEach(([x,y,dx,dy])=>{
+    sctx.beginPath();sctx.moveTo(x+dx*L,y);sctx.lineTo(x,y);sctx.lineTo(x,y+dy*L);sctx.stroke();
+  });
+  // header
+  sctx.textAlign='center';
+  sctx.fillStyle=DIM;
+  sctx.font='700 21px "Space Mono","Courier New",monospace';
+  sctx.fillText('G A R D E N   O P E N',W/2,58);
+  // rule line
+  sctx.strokeStyle='rgba(245,234,209,0.3)';sctx.lineWidth=2;
+  sctx.beginPath();sctx.moveTo(W/2-70,74);sctx.lineTo(W/2+70,74);sctx.stroke();
+  // big score
+  sctx.fillStyle=INK;
+  sctx.font='700 96px "Space Mono","Courier New",monospace';
+  sctx.fillText(a+' — '+b,W/2,170);
+  // side labels
+  sctx.font='700 17px "Space Mono","Courier New",monospace';
+  sctx.fillStyle=DIM;
+  sctx.textAlign='left';sctx.fillText('■ YOU',34,H-32);
+  sctx.textAlign='right';sctx.fillText('RIVAL ■',W-34,H-32);
+  scoreTex.needsUpdate=true;
 }
 drawScore(0,0);
 {
@@ -2373,6 +2578,17 @@ function animate(){
     l.m.position.x+=Math.sin(t*2+l.phase)*dt*0.8+0.3*dt;
     l.m.rotation.x+=dt*2;l.m.rotation.y+=dt*1.3;
     if(l.m.position.y<0.1)l.m.position.set(rand(-25,25),rand(6,9),rand(-25,25));
+  }
+  // sakura petals: slow flutter-fall around the cherry trees
+  for(const p of petals){
+    p.m.position.y-=p.vy*dt;
+    p.m.position.x+=Math.sin(t*1.8+p.phase)*dt*0.6;
+    p.m.position.z+=Math.cos(t*1.4+p.phase*1.3)*dt*0.45;
+    p.m.rotation.x+=dt*p.spin;p.m.rotation.y+=dt*p.spin*0.7;
+    if(p.m.position.y<0.12){
+      const s=pick(sakuraSpots);
+      p.m.position.set(s.x+rand(-s.r,s.r),rand(2.2,3.8),s.z+rand(-s.r,s.r));
+    }
   }
 
   // ---- player movement ----
