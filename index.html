@@ -353,7 +353,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script>
 /* ============================================================
    SUNNY SERVE v2 — arcade tennis, Mario-Tennis-style feel
@@ -1987,58 +1986,36 @@ function animatePlayer(p, speed, diving, dt){
 }
 
 /* ============================================================
-   MULTIPLAYER — PeerJS (WebRTC P2P) with room codes.
-   Canonical frame = host's frame; guest mirrors x/z both ways.
-   Ball flight is deterministic, so only HIT events are sent.
-   Host is referee: only the host awards points; guest applies.
-   Remote movement is interpolated ~120ms behind for smoothness.
+   MULTIPLAYER — our own realtime match server (WebSocket relay).
+   The traditional approach: a server we control pairs players
+   (room codes / quick match) and relays tiny game messages.
+   Works on every network — no P2P dependence, no third-party cloud.
+   Ball flight stays deterministic (only HIT events travel) and the
+   host referees; remote movement is interpolated ~120ms for smoothness.
    ============================================================ */
-const NET = { mode:false, isHost:false, peer:null, conn:null, buf:[], lastMoveSend:0 };
-/* Explicit PeerJS cloud config + STUN/TURN relays.
-   - Explicit host avoids silent env-detection hangs.
-   - Google STUN finds direct routes; Open Relay TURN is the fallback
-     for strict networks (mobile carriers, hotel wifi) that block P2P. */
-const PEER_CFG = {
-  host:'0.peerjs.com', port:443, path:'/', secure:true, debug:0,
-  config:{ iceServers:[
-    { urls:'stun:stun.l.google.com:19302' },
-    { urls:'stun:stun1.l.google.com:19302' },
-    { urls:'turn:openrelay.metered.ca:80',  username:'openrelayproject', credential:'openrelayproject' },
-    { urls:'turn:openrelay.metered.ca:443', username:'openrelayproject', credential:'openrelayproject' },
-  ]}
-};
-function newPeer(id){
-  const p = id ? new Peer(id, PEER_CFG) : new Peer(PEER_CFG);
-  p.on('disconnected', ()=>{ try{ if(!p.destroyed) p.reconnect(); }catch(e){} });
-  return p;
-}
-// watchdog: if the signaling cloud can't be reached, say so instead of hanging
-function watchdog(peer, ms, onFail){
-  const tm=setTimeout(()=>{
-    if(peer && !peer.destroyed && !peer.open){
-      try{peer.destroy();}catch(e){}
-      onFail();
-    }
-  }, ms);
-  peer.on('open', ()=>clearTimeout(tm));
-  return tm;
-}
-function netMirror(v){ return {x:-v.x, z:-v.z}; }
-function netSend(o){ if(NET.conn&&NET.conn.open){ try{NET.conn.send(o);}catch(e){} } }
+// >>> PASTE YOUR DEPLOYED SERVER URL HERE (see sunny-serve-server README) <<<
+const SIGNAL_URL = 'wss://sunny-serve-server.onrender.com';
+
+const NET = { mode:false, isHost:false, ws:null, inMatch:false, buf:[], lastMoveSend:0 };
+
 function netStatus(txt, pulsing){
   const el=document.getElementById('netStatus');
   el.innerHTML=(pulsing?'<span class="pulse"></span>':'')+txt;
 }
-function genCode(){
-  const chars='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let c='';for(let i=0;i<4;i++)c+=chars[(Math.random()*chars.length)|0];
-  return c;
+function netConfigured(){ return SIGNAL_URL.startsWith('wss://') && !SIGNAL_URL.includes('PASTE-YOUR'); }
+function netSend(o){
+  if(NET.ws&&NET.ws.readyState===1){ try{NET.ws.send(JSON.stringify({t:'relay',d:o}));}catch(e){} }
+}
+function netRaw(o){
+  if(NET.ws&&NET.ws.readyState===1){ try{NET.ws.send(JSON.stringify(o));}catch(e){} }
 }
 function netCleanup(){
-  if(typeof qmStop==='function')qmStop();
-  try{ if(NET.conn)NET.conn.close(); }catch(e){}
-  try{ if(NET.peer)NET.peer.destroy(); }catch(e){}
-  NET.conn=null;NET.peer=null;NET.mode=false;NET.buf=[];
+  NET.mode=false; NET.inMatch=false; NET.buf=[];
+  if(NET.ws){
+    try{ netRaw({t:'cancel'}); }catch(e){}
+    try{ NET.ws.onclose=null; NET.ws.close(); }catch(e){}
+  }
+  NET.ws=null;
 }
 function netDisconnect(reason){
   const wasPlaying=gamePhase==='playing';
@@ -2046,127 +2023,71 @@ function netDisconnect(reason){
   if(wasPlaying){
     gamePhase='menu';
     document.getElementById('menu').classList.add('show');
-    netStatus(reason||'FRIEND DISCONNECTED',false);
-    showMsg(reason||'FRIEND DISCONNECTED 📡',2500);
-  } else netStatus(reason||'',false);
+    showMsg(reason||'OPPONENT DISCONNECTED 📡',2500);
+  }
+  netStatus(reason||'',false);
   document.getElementById('roomCodeBig').style.display='none';
 }
-function netSetupConn(conn){
-  NET.conn=conn;
-  conn.on('data', netHandleMsg);
-  conn.on('close', ()=>netDisconnect('OPPONENT LEFT THE MATCH'));
-  conn.on('error', ()=>netDisconnect('CONNECTION ERROR'));
+// open (or reuse) the socket, then run the action
+function netConnect(action){
+  if(!netConfigured()){
+    netStatus('SERVER NOT SET UP YET — SEE README',false);
+    return;
+  }
+  if(NET.ws&&NET.ws.readyState===1){ action(); return; }
+  netStatus('CONNECTING TO SERVER…',true);
+  // free-tier servers sleep when idle; warn about the wake-up on slow connects
+  const wakeHint=setTimeout(()=>{
+    if(!NET.ws||NET.ws.readyState!==1)netStatus('WAKING SERVER UP… (~30S FIRST TIME)',true);
+  },4000);
+  const failTimer=setTimeout(()=>{
+    if(!NET.ws||NET.ws.readyState!==1){
+      try{NET.ws&&NET.ws.close();}catch(e){}
+      NET.ws=null;
+      netStatus("CAN'T REACH SERVER — TRY AGAIN",false);
+    }
+  },60000);
+  const ws=new WebSocket(SIGNAL_URL);
+  NET.ws=ws;
+  ws.onopen=()=>{ clearTimeout(wakeHint); clearTimeout(failTimer); action(); };
+  ws.onmessage=(e)=>{
+    let m; try{ m=JSON.parse(e.data); }catch(err){ return; }
+    if(m.t==='room'){
+      netStatus('WAITING FOR FRIEND — SHARE THE CODE',true);
+      const big=document.getElementById('roomCodeBig');
+      big.textContent=m.code; big.style.display='block';
+    }
+    else if(m.t==='queued'){ netStatus('SEARCHING FOR OPPONENT…',true); }
+    else if(m.t==='matched'){
+      NET.isHost=(m.role==='host');
+      NET.inMatch=true;
+      if(NET.isHost){
+        netSend({t:'start', win:WIN_SCORE});
+        startNetGame(true);
+      } else {
+        netStatus('OPPONENT FOUND — STARTING…',true);
+      }
+    }
+    else if(m.t==='relay'){ netHandleMsg(m.d); }
+    else if(m.t==='err'){ netStatus(m.msg||'ERROR',false); }
+    else if(m.t==='partner_left'){ netDisconnect('OPPONENT LEFT THE MATCH'); }
+  };
+  ws.onclose=()=>{
+    clearTimeout(wakeHint); clearTimeout(failTimer);
+    if(NET.inMatch) netDisconnect('CONNECTION LOST 📡');
+    NET.ws=null;
+  };
+  ws.onerror=()=>{ /* onclose follows and handles it */ };
 }
-function netCreateRoom(){
-  netCleanup();
-  const code=genCode();
-  netStatus('CREATING ROOM…',true);
-  NET.peer=newPeer('sunnyserve-'+code);
-  watchdog(NET.peer, 10000, ()=>netStatus('CAN\'T REACH MATCH SERVER — CHECK INTERNET',false));
-  NET.peer.on('open',()=>{
-    netStatus('WAITING FOR FRIEND — SHARE THE CODE',true);
-    const big=document.getElementById('roomCodeBig');
-    big.textContent=code;big.style.display='block';
-  });
-  NET.peer.on('connection',conn=>{
-    if(NET.conn&&NET.conn.open){ try{conn.close();}catch(e){} return; }  // room is full
-    NET.isHost=true;
-    netSetupConn(conn);
-    conn.on('open',()=>{
-      netSend({t:'start', win:WIN_SCORE});
-      startNetGame(true);
-    });
-  });
-  NET.peer.on('error',err=>{
-    if(err&&err.type==='unavailable-id')netStatus('CODE CLASH — TRY AGAIN',false);
-    else netStatus('NETWORK ERROR — RETRY',false);
-  });
-}
-
-/* ---- QUICK MATCH: serverless matchmaking over shared lobby slots.
-   Scan slots 0..5 for a waiting host; first one found = your opponent.
-   All empty -> become the host on the lowest free slot and wait. ---- */
-const QM = { active:false, scanIdx:0, scanPeer:null, scanTimer:null };
-function qmStop(){
-  QM.active=false;
-  if(QM.scanTimer){clearTimeout(QM.scanTimer);QM.scanTimer=null;}
-  try{ if(QM.scanPeer)QM.scanPeer.destroy(); }catch(e){}
-  QM.scanPeer=null;
-}
-function netQuickMatch(){
-  netCleanup(); qmStop();
-  QM.active=true; QM.scanIdx=0;
-  netStatus('SEARCHING FOR OPPONENT…',true);
-  qmScanNext();
-}
-function qmScanNext(){
-  if(!QM.active)return;
-  if(QM.scanIdx>=6){ qmHost(0); return; }        // nobody waiting -> host
-  const slot=QM.scanIdx++;
-  try{ if(QM.scanPeer)QM.scanPeer.destroy(); }catch(e){}
-  const p=newPeer();
-  QM.scanPeer=p;
-  let settled=false;
-  p.on('open',()=>{
-    if(!QM.active){p.destroy();return;}
-    const conn=p.connect('sunnyserve-qm-'+slot,{reliable:true});
-    conn.on('open',()=>{
-      if(!QM.active||settled)return;
-      settled=true;
-      if(QM.scanTimer){clearTimeout(QM.scanTimer);QM.scanTimer=null;}
-      QM.scanPeer=null; QM.active=false;
-      NET.peer=p; NET.isHost=false;
-      netSetupConn(conn);
-      netStatus('OPPONENT FOUND — STARTING…',true);
-    });
-    conn.on('close',()=>{ if(!settled&&QM.active){settled=true;qmScanNext();} });
-    conn.on('error',()=>{ if(!settled&&QM.active){settled=true;qmScanNext();} });
-  });
-  p.on('error',()=>{ if(!settled&&QM.active){settled=true;qmScanNext();} });
-  QM.scanTimer=setTimeout(()=>{ if(!settled&&QM.active){settled=true;qmScanNext();} },2200);
-}
-function qmHost(slot){
-  if(!QM.active)return;
-  if(slot>=6){ netStatus('LOBBY FULL — TRY AGAIN',false); qmStop(); return; }
-  try{ if(QM.scanPeer)QM.scanPeer.destroy(); }catch(e){}
-  QM.scanPeer=null;
-  netStatus('WAITING FOR AN OPPONENT…',true);
-  NET.peer=newPeer('sunnyserve-qm-'+slot);
-  watchdog(NET.peer, 10000, ()=>{ if(QM.active){netStatus('CAN\'T REACH MATCH SERVER — CHECK INTERNET',false);qmStop();} });
-  NET.peer.on('open',()=>{ /* hosting slot */ });
-  NET.peer.on('connection',conn=>{
-    if(NET.conn&&NET.conn.open){ try{conn.close();}catch(e){} return; }
-    QM.active=false;
-    NET.isHost=true;
-    netSetupConn(conn);
-    conn.on('open',()=>{
-      netSend({t:'start', win:WIN_SCORE});
-      startNetGame(true);
-    });
-  });
-  NET.peer.on('error',err=>{
-    if(err&&err.type==='unavailable-id'){          // slot taken -> next slot
-      try{NET.peer.destroy();}catch(e){}
-      NET.peer=null;
-      qmHost(slot+1);
-    } else if(QM.active){ netStatus('NETWORK ERROR — RETRY',false); qmStop(); }
-  });
-}
+function netCreateRoom(){ netCleanup(); netConnect(()=>{ netStatus('CREATING ROOM…',true); netRaw({t:'create'}); }); }
 function netJoinRoom(code){
   if(!code||code.length<4){netStatus('ENTER THE 4-LETTER CODE',false);return;}
-  netCleanup();
-  netStatus('CONNECTING…',true);
-  NET.peer=newPeer();
-  watchdog(NET.peer, 10000, ()=>netStatus('CAN\'T REACH MATCH SERVER — CHECK INTERNET',false));
-  NET.peer.on('open',()=>{
-    const conn=NET.peer.connect('sunnyserve-'+code,{reliable:true});
-    NET.isHost=false;
-    netSetupConn(conn);
-    conn.on('open',()=>{ netStatus('CONNECTED — STARTING…',true); });
-    setTimeout(()=>{ if(!NET.conn||!NET.conn.open)netStatus('ROOM NOT FOUND — CHECK CODE',false); },8000);
-  });
-  NET.peer.on('error',()=>netStatus('ROOM NOT FOUND — CHECK CODE',false));
+  netCleanup(); netConnect(()=>{ netStatus('JOINING ROOM…',true); netRaw({t:'join', code}); });
 }
+function netQuickMatch(){ netCleanup(); netConnect(()=>{ netRaw({t:'quick'}); }); }
+
+// ---- in-match game messages (same protocol as before) ----
+function netMirror(v){ return {x:-v.x, z:-v.z}; }
 function netHandleMsg(m){
   if(!m||!m.t)return;
   if(m.t==='start'){
@@ -2245,7 +2166,7 @@ function judge(who,reason){
   else state='scored';
 }
 
-// ---------- Camera ----------
+// ---------- Camera ----------// ---------- Camera ----------
 const camPos=new THREE.Vector3(0,7.5,BASE_Z+10);
 const camLook=new THREE.Vector3(0,1,0);
 
@@ -2764,13 +2685,8 @@ document.getElementById('btnVsCpu').addEventListener('click',()=>{
 });
 document.getElementById('btnFriends').addEventListener('click',()=>{
   audio();pop(560,0.06,'triangle',0.16);
-  if(typeof Peer==='undefined'){showMsg('MULTIPLAYER NEEDS INTERNET 📡',2200);return;}
   setMode('friends');
-  // sandboxed previews (like in-app viewers) often block the match server —
-  // the live site is the reliable place for online play
-  if(location.protocol==='file:'||location.hostname===''){
-    netStatus('TIP: ONLINE WORKS BEST ON THE LIVE SITE',false);
-  }
+  if(!netConfigured())netStatus('SERVER NOT SET UP YET — SEE README',false);
 });
 document.getElementById('btnPlay').addEventListener('click',()=>{
   audio();pop(620,0.09,'triangle',0.22);
