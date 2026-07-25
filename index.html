@@ -158,7 +158,7 @@
   /* ---------- Main menu — a real game home screen ---------- */
   #menu {
     position:fixed; inset:0; z-index:90; background:var(--paper);
-    opacity:0; pointer-events:none; transition:opacity .55s ease; overflow:hidden auto;
+    opacity:0; pointer-events:none; transition:opacity .55s ease; overflow:hidden;
     font-family:'Space Mono','Courier New',monospace; color:var(--ink);
   }
   #menu.show { opacity:1; pointer-events:auto; }
@@ -385,7 +385,7 @@
   .titleWrap .mark { display:none; }
   #loader .clubTag, #menu .clubTag { font-size:10px; letter-spacing:7px; color:#1e6b3f; opacity:0.9; }
   #menuInner {
-    min-height:auto; margin:max(3vh,14px) auto; padding:26px 28px 96px;
+    min-height:100%; margin:0 auto; padding:24px 28px 26px;
     background:none; border:none; border-radius:0;
     box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none;
   }
@@ -462,7 +462,7 @@
   #loadBall::after { border-color:#0e1a26; border-top-color:transparent; border-bottom-color:transparent; }
   #loadPctTxt { color:#17352a; letter-spacing:4px; }
   #loader .tip { color:rgba(20,60,40,0.6); }
-  @media (max-height:640px){ .heroBall{display:none;} .decoBottom{height:110px;} #menuInner{padding-bottom:60px;} }
+  @media (max-height:640px){ .heroBall{display:none;} .decoBottom{height:110px;} #menuInner{padding-bottom:18px;} }
   /* ---- aim stick (right thumb) ---- */
   #joyBase2 {
     position:fixed; width:110px; height:110px; border-radius:50%;
@@ -572,7 +572,7 @@
   /* CTA-grade press physics on the primary button */
   #btnPlay:active { background:#b4c722; box-shadow:inset 0 2px 4px rgba(0,0,0,0.3); transition-duration:.05s; }
   .modeTile:active, .chip:active { transform:scale(0.985); transition-duration:.06s; }
-  /* ============ VIDEO BACKGROUND (clouds.mp4) ============ */
+  /* ============ VIDEO BACKGROUND (clouds_gwr_video_mvp.mp4) ============ */
   .bgVideo {
     position:fixed; inset:0; width:100%; height:100%;   /* pinned to the viewport: scrolling can never slide past it */
     object-fit:cover; z-index:1; pointer-events:none;   /* above the skyScene gradient, below all content (z2) */
@@ -703,7 +703,7 @@
 </div>
 
 <div id="loader">
-<video class="bgVideo" src="clouds.mp4" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
+<video class="bgVideo" src="clouds_gwr_video_mvp.mp4" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
 <div class="deco skySun" aria-hidden="true"></div>
 <div class="deco cloud c1" aria-hidden="true"><svg viewBox="0 0 220 70"><path fill="#ffffff" d="M30,58 q-22,0 -22,-17 q0,-16 18,-16 q5,-15 24,-15 q17,0 22,12 q17,-4 25,8 q16,0 16,14 q0,14 -17,14 Z"/></svg></div>
 <div class="deco cloud c2" aria-hidden="true"><svg viewBox="0 0 220 70"><path fill="#ffffff" d="M36,58 q-24,0 -24,-16 q0,-15 17,-16 q4,-14 22,-14 q15,0 21,10 q14,-6 24,4 q20,-2 20,15 q0,17 -20,17 Z"/></svg></div>
@@ -750,7 +750,7 @@
 </div>
 
 <div id="menu">
-<video class="bgVideo" src="clouds.mp4" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
+<video class="bgVideo" src="clouds_gwr_video_mvp.mp4" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
 <div class="skyScene" id="skySceneMenu">
 <div class="deco skySun" aria-hidden="true"></div>
 <div class="deco cloud c1" aria-hidden="true"><svg viewBox="0 0 220 70"><path fill="#ffffff" d="M30,58 q-22,0 -22,-17 q0,-16 18,-16 q5,-15 24,-15 q17,0 22,12 q17,-4 25,8 q16,0 16,14 q0,14 -17,14 Z"/></svg></div>
