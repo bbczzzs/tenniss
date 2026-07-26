@@ -152,14 +152,24 @@
 
   /* solid ink knob: the highest-contrast thing on screen, so your thumb
      position is readable at a glance mid-rally */
+  /* knobs are bare positioners — the face inside each one is the visual */
   #joyKnob, #joyKnob2 {
-    position:absolute; width:46px; height:46px; border-radius:50%; left:27px; top:27px;
-    background:#1d2a22;
-    box-shadow:0 3px 9px rgba(0,0,0,0.32), inset 0 2px 0 rgba(245,239,224,0.16);
-    transition:background .12s ease;
+    position:absolute; width:50px; height:50px; left:25px; top:25px;
+    display:flex; align-items:center; justify-content:center;
+    background:none; border:none; box-shadow:none;
   }
+  /* left stick reads as the ball, right stick as the racket. Together they say
+     "tennis" without a single label, and neither needs a puck behind it. */
+  #joyKnob .ballFace {
+    width:50px; height:50px; pointer-events:none;
+    filter:drop-shadow(0 3px 5px rgba(0,0,0,0.35));
+    transition:transform .1s ease;
+  }
+  #joyBase.on #joyKnob .ballFace { transform:scale(1.05); }
   #joyBase.sprint { box-shadow:0 0 22px rgba(255,194,71,0.55), 3px 3px 0 rgba(29,42,34,0.34); }
-  #joyBase.sprint #joyKnob { background:var(--acc); }
+  #joyBase.sprint #joyKnob .ballFace {
+    filter:drop-shadow(0 0 9px rgba(255,194,71,0.95)) drop-shadow(0 3px 5px rgba(0,0,0,0.35));
+  }
   #joyBase.sprint .jArrow { border-color:var(--acc); }
 
   /* ---- right pad: racket face ---- */
@@ -169,20 +179,20 @@
   }
   /* The racket IS the stick. It lives inside the knob, so every drag carries it
      with your thumb instead of fading it out behind a separate dot. */
-  #joyBase2 #joyKnob2 {
-    width:52px; height:52px; left:24px; top:24px;
-    background:#f5efe0; border:2.5px solid #1d2a22;
-    box-shadow:0 3px 10px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.5);
-    display:flex; align-items:center; justify-content:center;
-    transition:background .12s ease, box-shadow .12s ease;
-  }
   #joyBase2 .racket {
-    width:34px; height:34px; pointer-events:none; color:#1d2a22;
-    transform-origin:52% 58%;                  /* pivot near the grip, not the centre */
-    transition:transform .09s linear;
+    width:50px; height:50px; pointer-events:none; color:#1d2a22;
+    transform-origin:52% 60%;                  /* pivot near the grip, not the centre */
+    /* stacked same-colour shadows = a bone outline, so an ink racket stays
+       readable over dark grass shadow as well as bright court */
+    filter:drop-shadow(0 0 1.6px #f5efe0) drop-shadow(0 0 1.6px #f5efe0)
+           drop-shadow(0 0 1.6px #f5efe0) drop-shadow(0 3px 5px rgba(0,0,0,0.4));
+    transition:transform .09s linear, color .12s ease, filter .12s ease;
   }
-  #joyBase2.on #joyKnob2 { box-shadow:0 5px 14px rgba(0,0,0,0.36), inset 0 2px 0 rgba(255,255,255,0.55); }
-  #joyBase2.full #joyKnob2 { background:var(--acc); }
+  #joyBase2.full .racket { color:var(--accDeep); }
+  #joyBase2.full .racket {
+    filter:drop-shadow(0 0 2px #fff6e2) drop-shadow(0 0 2px #fff6e2)
+           drop-shadow(0 0 10px rgba(255,194,71,0.95)) drop-shadow(0 3px 5px rgba(0,0,0,0.4));
+  }
 
   /* charge ring rides OUTSIDE the ink rim so it never fights the racket */
   #chargeRing {
@@ -199,7 +209,10 @@
   #joyBase2.full #chargeRing .crFill { animation:crPulse .5s ease-in-out infinite; }
   @keyframes crPulse { 0%,100%{ opacity:1; stroke-width:5; } 50%{ opacity:0.68; stroke-width:7; } }
   #joyBase2.hot { box-shadow:0 0 26px rgba(255,255,255,0.7), 3px 3px 0 rgba(29,42,34,0.34); }
-  #joyBase2.hot #joyKnob2 { background:#ffffff; box-shadow:0 0 18px rgba(255,255,255,0.9); }
+  #joyBase2.hot .racket {
+    filter:drop-shadow(0 0 2px #ffffff) drop-shadow(0 0 2px #ffffff)
+           drop-shadow(0 0 14px rgba(255,255,255,1)) drop-shadow(0 3px 5px rgba(0,0,0,0.4));
+  }
   .ghost { display:none !important; }
 
   /* ---------- action buttons ---------- */
@@ -265,10 +278,10 @@
     #joyBase2 { left:auto; right:16px; }
     .touch.lefty #joyBase { left:auto; right:16px; }
     .touch.lefty #joyBase2 { right:auto; left:16px; }
-    #joyKnob { width:40px; height:40px; left:23px; top:23px; }
-    #joyBase2 #joyKnob2 { width:45px; height:45px; left:20.5px; top:20.5px; }
+    #joyKnob, #joyKnob2 { width:43px; height:43px; left:21.5px; top:21.5px; }
+    #joyKnob .ballFace { width:43px; height:43px; }
     #chargeRing { inset:-8px; width:102px; height:102px; }
-    #joyBase2 .racket { width:29px; height:29px; }
+    #joyBase2 .racket { width:43px; height:43px; }
     .mbtn { width:42px; height:42px; border-width:2px; box-shadow:2.5px 2.5px 0 rgba(29,42,34,0.4); }
     .mbtn b { font-size:15px; }
     .touch.sticks #btnSmash { right:35px;  bottom:127px; }
@@ -1154,7 +1167,21 @@
 <div id="joyBase">
   <span class="jArrow up"></span><span class="jArrow dn"></span>
   <span class="jArrow lf"></span><span class="jArrow rt"></span>
-  <div id="joyKnob"></div>
+  <div id="joyKnob">
+    <svg class="ballFace" viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="20" r="17.4" fill="#e4ec55" stroke="#1d2a22" stroke-width="2.6"/>
+      <circle cx="20" cy="20" r="17.4" fill="url(#knobBallShade)" stroke="none"/>
+      <path d="M6.2 8.4 Q13.6 20 6.2 31.6" fill="none" stroke="#fbfde6" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M33.8 8.4 Q26.4 20 33.8 31.6" fill="none" stroke="#fbfde6" stroke-width="2.5" stroke-linecap="round"/>
+      <defs>
+        <radialGradient id="knobBallShade" cx="36%" cy="30%" r="72%">
+          <stop offset="0%"  stop-color="#ffffff" stop-opacity="0.55"/>
+          <stop offset="55%" stop-color="#ffffff" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#5c6b1f" stop-opacity="0.35"/>
+        </radialGradient>
+      </defs>
+    </svg>
+  </div>
 </div>
 <div class="mbtn" id="btnHit"><b>🎾</b><em>HIT</em></div>
 <div class="mbtn" id="btnLob"><b>☁️</b><em>LOB</em></div>
@@ -3968,12 +3995,15 @@ function joyStart(t){
 }
 function joyMove(t){
   const dx=t.clientX-joy.cx,dy=t.clientY-joy.cy;
-  const len=Math.hypot(dx,dy),max=52;
+  const len=Math.hypot(dx,dy),max=TOUCH.stickMax;
   const sc=len>max?max/len:1;
   joy.dx=dx*sc/max;joy.dy=dy*sc/max;
-  const R=joy.R||56, K=joy.K||25;
-  joyKnob.style.left=(R-K+dx*sc*0.82)+'px';
-  joyKnob.style.top =(R-K+dy*sc*0.82)+'px';
+  const R=joy.R||50, K=joy.K||25;
+  // travel is a fraction of the PAD radius, so the face overhangs the rim by
+  // the same amount on a big phone and a small one
+  const T=R*0.70;
+  joyKnob.style.left=(R-K+joy.dx*T)+'px';
+  joyKnob.style.top =(R-K+joy.dy*T)+'px';
   // light the chevron you're pushing toward
   const t2=0.34;
   joyBase.classList.toggle('pUp', joy.dy<-t2);
@@ -4051,8 +4081,9 @@ function joyRMove(t){
   const dx=t.clientX-joyR.cx,dy=t.clientY-joyR.cy;
   joyR.dx=dx;joyR.dy=dy;
   const len=Math.hypot(dx,dy),max=TOUCH.stickMax,sc=len>max?max/len:1;
-  const R=joyR.R||50, K=joyR.K||26;
-  joyKnob2.style.left=(R-K+dx*sc*0.70)+'px';joyKnob2.style.top=(R-K+dy*sc*0.70)+'px';
+  const R=joyR.R||50, K=joyR.K||25, T=R*0.70;
+  joyKnob2.style.left=(R-K+(dx*sc/max)*T)+'px';
+  joyKnob2.style.top =(R-K+(dy*sc/max)*T)+'px';
   // the racket cants toward where you're aiming — reads as a swing being loaded
   if(racketEl) racketEl.style.transform='rotate('+(clamp(dx/TOUCH.aimSpan,-1,1)*26).toFixed(1)+'deg)';
   aimPrevX=aimMouseX;aimPrevY=aimMouseY;
