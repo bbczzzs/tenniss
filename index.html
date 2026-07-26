@@ -61,21 +61,59 @@
     background:rgba(255,255,255,0.85); left:31px; top:31px;
     box-shadow:0 2px 8px rgba(0,0,0,0.3);
   }
+  /* ---------- touch action buttons: dark glass + accent hairline ---------- */
   .mbtn {
     position:fixed; border-radius:50%; z-index:8; display:none;
-    align-items:center; justify-content:center; font-weight:bold;
-    color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.3); user-select:none;
-    box-shadow:0 4px 12px rgba(0,0,0,0.25); border:3px solid rgba(255,255,255,0.6);
-    font-family:'Trebuchet MS',sans-serif;
+    align-items:center; justify-content:center;
+    font-family:'Space Mono','Courier New',monospace;
+    font-weight:700; letter-spacing:0.5px;
+    color:rgba(255,255,255,0.94); user-select:none; -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent; touch-action:none;
+    background:rgba(9,22,36,0.5);
+    backdrop-filter:blur(10px) saturate(1.35);
+    -webkit-backdrop-filter:blur(10px) saturate(1.35);
+    border:1.5px solid rgba(255,255,255,0.22);
+    box-shadow:0 6px 18px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.2);
+    transition:transform .08s ease, box-shadow .13s ease, background .13s ease, color .13s ease;
+    --bc:#ffffff; --gl:rgba(255,255,255,0.5);
   }
-  .mbtn:active { transform:scale(0.92); filter:brightness(1.15); }
-  #btnHit    { width:84px; height:84px; right:18px;  bottom:64px;  background:rgba(255,95,95,0.9);  font-size:17px; }
-  #btnSmash  { width:60px; height:60px; right:112px; bottom:196px; background:rgba(255,68,34,0.94);  font-size:11px; }
-  #btnLob    { width:60px; height:60px; right:112px; bottom:40px;  background:rgba(78,205,196,0.9); font-size:13px; }
-  #btnDive   { width:60px; height:60px; right:112px; bottom:118px; background:rgba(178,141,255,0.92); font-size:12px; }
-  #btnSprint { width:60px; height:60px; right:24px;  bottom:162px; background:rgba(255,159,69,0.92); font-size:11px; }
+  .mbtn::after {           /* accent hairline sits just outside the glass edge */
+    content:''; position:absolute; inset:-3px; border-radius:50%;
+    border:1.5px solid var(--bc); opacity:0.42; pointer-events:none;
+    transition:opacity .13s ease, transform .13s ease;
+  }
+  .mbtn:active {
+    transform:scale(0.88); background:var(--bc); color:#0b1622;
+    box-shadow:0 0 24px var(--gl), 0 3px 10px rgba(0,0,0,0.35);
+  }
+  .mbtn:active::after { opacity:1; transform:scale(1.14); }
+  /* cooldown wash — set by JS on dive */
+  .mbtn.cool { opacity:0.4; }
+  #btnHit    { --bc:#ff6b6b; --gl:rgba(255,107,107,0.55); }
+  #btnSmash  { --bc:#ff7a3d; --gl:rgba(255,122,61,0.55); }
+  #btnLob    { --bc:#4ecdc4; --gl:rgba(78,205,196,0.55); }
+  #btnDive   { --bc:#b28dff; --gl:rgba(178,141,255,0.55); }
+  #btnDrop   { --bc:#ffd166; --gl:rgba(255,209,102,0.55); }
+  #btnSprint { --bc:#dff05e; --gl:rgba(223,240,94,0.55); }
+  /* BUTTONS scheme: big HIT in the corner, everything else on a thumb arc.
+     RUN moves to the left thumb — you run with the hand that steers. */
+  #btnHit    { width:82px; height:82px; font-size:15px;
+               right:calc(20px + env(safe-area-inset-right,0px)); bottom:calc(26px + env(safe-area-inset-bottom,0px)); }
+  #btnSmash  { width:56px; height:56px; font-size:10px;
+               right:calc(114px + env(safe-area-inset-right,0px)); bottom:calc(44px + env(safe-area-inset-bottom,0px)); }
+  #btnDive   { width:56px; height:56px; font-size:10px;
+               right:calc(96px + env(safe-area-inset-right,0px)); bottom:calc(124px + env(safe-area-inset-bottom,0px)); }
+  #btnLob    { width:56px; height:56px; font-size:11px;
+               right:calc(24px + env(safe-area-inset-right,0px)); bottom:calc(122px + env(safe-area-inset-bottom,0px)); }
+  #btnDrop   { width:56px; height:56px; font-size:10px;
+               right:calc(168px + env(safe-area-inset-right,0px)); bottom:calc(112px + env(safe-area-inset-bottom,0px)); }
+  #btnSprint { width:60px; height:60px; font-size:10px;
+               left:calc(26px + env(safe-area-inset-left,0px)); bottom:calc(120px + env(safe-area-inset-bottom,0px)); }
   .touch #joyBase.on { display:block; }
   .touch .mbtn { display:flex; }
+  /* left stick lights up at full push = sprinting */
+  #joyBase.sprint { border-color:rgba(223,240,94,0.9); box-shadow:0 0 20px rgba(223,240,94,0.35); }
+  #joyBase.sprint #joyKnob { background:rgba(223,240,94,0.95); }
   /* ---------- Loading screen — editorial ink, game-shaped ---------- */
   :root { --paper:#c5cec3; --ink:#222c38; --ink-soft:rgba(34,44,56,0.72); }
   .grain {
@@ -501,10 +539,63 @@
     box-shadow:0 2px 8px rgba(0,0,0,0.35);
   }
   .touch #joyBase2.on { display:block; }
-  /* dual-sticks mode: shot buttons fold away (smash + dive stay) */
+  /* dual-sticks mode: the stick covers flat/lob/slice, so only the three
+     specials stay — laid out on the arc a right thumb actually sweeps. */
   .touch.sticks #btnHit, .touch.sticks #btnLob, .touch.sticks #btnSprint { display:none; }
-  .touch.sticks #btnSmash { right:24px; bottom:196px; }
-  .touch.sticks #btnDive  { right:24px; bottom:118px; }
+  .touch.sticks #btnSmash { right:calc(26px  + env(safe-area-inset-right,0px)); bottom:calc(128px + env(safe-area-inset-bottom,0px)); }
+  .touch.sticks #btnDive  { right:calc(92px  + env(safe-area-inset-right,0px)); bottom:calc(92px  + env(safe-area-inset-bottom,0px)); }
+  .touch.sticks #btnDrop  { right:calc(128px + env(safe-area-inset-right,0px)); bottom:calc(26px  + env(safe-area-inset-bottom,0px)); }
+
+  /* ---------- charge ring on the aim stick ---------- */
+  #chargeRing {
+    position:absolute; inset:-9px; width:128px; height:128px;
+    pointer-events:none; transform:rotate(-90deg); overflow:visible;
+  }
+  #chargeRing .crBg   { fill:none; stroke:rgba(255,255,255,0.14); stroke-width:4; }
+  #chargeRing .crFill {
+    fill:none; stroke:var(--cc,#dff05e); stroke-width:4; stroke-linecap:round;
+    stroke-dasharray:339.3; stroke-dashoffset:339.3;
+    filter:drop-shadow(0 0 5px var(--cc,#dff05e));
+    transition:stroke .12s linear;
+  }
+  /* full charge — ring breathes so you can feel it without looking */
+  #joyBase2.full #chargeRing .crFill { animation:crPulse .5s ease-in-out infinite; }
+  @keyframes crPulse { 0%,100%{ opacity:1; stroke-width:4; } 50%{ opacity:0.72; stroke-width:6; } }
+  /* ball is in your strike zone — release NOW */
+  #joyBase2.hot { border-color:rgba(255,255,255,0.95); box-shadow:0 0 26px rgba(255,255,255,0.42); }
+  #joyBase2.hot #joyKnob2 { background:#ffffff; }
+
+  /* ---------- strike-zone cue: bottom-of-screen glow ---------- */
+  #hitCue {
+    position:fixed; left:0; right:0; bottom:0; height:34vh; z-index:4;
+    pointer-events:none; opacity:0; transition:opacity .09s linear;
+    background:radial-gradient(120% 100% at 50% 118%, rgba(223,240,94,0.5) 0%, rgba(223,240,94,0.16) 42%, transparent 72%);
+  }
+  #hitCue.peak { background:radial-gradient(120% 100% at 50% 118%, rgba(255,255,255,0.62) 0%, rgba(223,240,94,0.26) 45%, transparent 74%); }
+
+  /* ---------- shot-type flag above the aim stick ---------- */
+  #shotTag {
+    position:fixed; z-index:9; pointer-events:none; display:none;
+    padding:4px 10px; border-radius:7px;
+    font-family:'Space Mono','Courier New',monospace; font-size:10px; font-weight:700;
+    letter-spacing:2.5px; color:#0b1622; background:var(--cc,#dff05e);
+    box-shadow:0 3px 12px rgba(0,0,0,0.35); transform:translate(-50%,-50%);
+  }
+  #shotTag.on { display:block; }
+
+  /* small landscape phones: shrink the whole touch layer so it stops eating the court */
+  @media (max-height:400px){
+    #joyBase, #joyBase2 { width:92px; height:92px; }
+    #joyKnob, #joyKnob2 { width:40px; height:40px; left:24px; top:24px; }
+    #chargeRing { inset:-8px; width:108px; height:108px; }
+    .mbtn { border-width:1.25px; }
+    #btnHit { width:70px; height:70px; font-size:13px; }
+    #btnSmash, #btnDive, #btnLob, #btnDrop, #btnSprint { width:48px; height:48px; font-size:9px; }
+    .touch.sticks #btnSmash { right:calc(22px  + env(safe-area-inset-right,0px)); bottom:calc(108px + env(safe-area-inset-bottom,0px)); }
+    .touch.sticks #btnDive  { right:calc(78px  + env(safe-area-inset-right,0px)); bottom:calc(78px  + env(safe-area-inset-bottom,0px)); }
+    .touch.sticks #btnDrop  { right:calc(108px + env(safe-area-inset-right,0px)); bottom:calc(22px  + env(safe-area-inset-bottom,0px)); }
+    #hitCue { height:28vh; }
+  }
   /* ---- settings ---- */
   #btnSettings {
     position:fixed; top:14px; right:14px; z-index:60;
@@ -740,13 +831,22 @@
 <div id="msg">Tap / click to serve!</div>
 <div id="power"><div class="fill" id="powerFill"></div></div>
 
+<div id="hitCue"></div>
 <div id="joyBase"><div id="joyKnob"></div></div>
 <div class="mbtn" id="btnHit">HIT</div>
 <div class="mbtn" id="btnLob">LOB</div>
 <div class="mbtn" id="btnDive">DIVE</div>
+<div class="mbtn" id="btnDrop">DROP</div>
 <div class="mbtn" id="btnSprint">RUN</div>
 <div class="mbtn" id="btnSmash">SMASH</div>
-<div id="joyBase2"><div id="joyKnob2"></div></div>
+<div id="joyBase2">
+  <svg id="chargeRing" viewBox="0 0 128 128" aria-hidden="true">
+    <circle class="crBg"   cx="64" cy="64" r="54"/>
+    <circle class="crFill" cx="64" cy="64" r="54"/>
+  </svg>
+  <div id="joyKnob2"></div>
+</div>
+<div id="shotTag">FLAT</div>
 <div id="btnSettings">&#9881;</div>
 <div id="setPanel" class="hiddenSet">
   <div class="setBox">
@@ -766,7 +866,7 @@
       </div>
     </div>
     <div class="setRow">
-      <span>SCREEN SHAKE</span>
+      <span>SHAKE &amp; RUMBLE</span>
       <div class="setOpts" data-key="shake">
         <button class="chip" data-v="on">ON</button>
         <button class="chip" data-v="off">OFF</button>
@@ -3376,42 +3476,113 @@ function joyMove(t){
 }
 function joyEnd(){joy.active=false;joy.id=null;joy.dx=0;joy.dy=0;joyBase.classList.remove('on');}
 // ---- right aim stick: direction + power, release to hit, swipes pick shot type ----
-const joyR={active:false,id:null,cx:0,cy:0,dx:0,dy:0,t0:0};
+const joyR={active:false,id:null,cx:0,cy:0,dx:0,dy:0,t0:0,charge:0,R:55,K:24};
 const joyBase2=document.getElementById('joyBase2'),joyKnob2=document.getElementById('joyKnob2');
+/* ---- tuning knobs for the touch feel — all in one place ---- */
+const TOUCH = {
+  dead:      28,    // px of thumb drift that still counts as a clean tap (was 14 — too twitchy)
+  stickMax:  52,    // visual clamp of the knob
+  aimSpan:   72,    // px of horizontal drag for full left/right aim
+  powerSpan: 58,    // px of drag for full flick power — matches the visual ring now
+  chargeT:   0.72,  // seconds of hold for full charge power
+  swipeV:    36,    // px before a drag counts as a vertical swipe
+};
+const SHOT_TINT={flat:'#dff05e',lob:'#4ecdc4',slice:'#b28dff',drop:'#ffd166',smash:'#ff7a3d'};
+const chargeRing=document.getElementById('chargeRing');
+const crFill=chargeRing.querySelector('.crFill');
+const shotTagEl=document.getElementById('shotTag');
+const hitCueEl=document.getElementById('hitCue');
+const CR_LEN=2*Math.PI*54;
+
+/* haptics — rides the existing SCREEN SHAKE toggle so one switch kills all rumble */
+function buzz(pat){
+  if(!SETTINGS.shake)return;
+  try{ navigator.vibrate && navigator.vibrate(pat); }catch(e){}
+}
+let hitCuePeaked=false;
+const btnDiveEl=document.getElementById('btnDive');
+
+/* which shot the current drag would produce */
+function joyRShotType(dx,dy){
+  const vertical=Math.abs(dy)>Math.abs(dx)*0.85;
+  if(vertical&&dy<-TOUCH.swipeV)return 'lob';
+  if(vertical&&dy> TOUCH.swipeV)return 'slice';
+  return 'flat';
+}
+function joyRPaint(type,charge,len){
+  const tint=SHOT_TINT[type]||SHOT_TINT.flat;
+  joyBase2.style.setProperty('--cc',tint);
+  shotTagEl.style.setProperty('--cc',tint);
+  crFill.style.setProperty('--cc',tint);
+  crFill.style.strokeDashoffset = CR_LEN*(1-charge);
+  joyBase2.classList.toggle('full', charge>=0.999);
+  if(len>TOUCH.dead){
+    shotTagEl.textContent=type.toUpperCase();
+    shotTagEl.classList.add('on');
+    shotTagEl.style.left=joyR.cx+'px';
+    shotTagEl.style.top =(joyR.cy-78)+'px';
+  }else shotTagEl.classList.remove('on');
+}
 function joyRStart(t){
   joyR.active=true;joyR.id=t.identifier;joyR.cx=t.clientX;joyR.cy=t.clientY;
-  joyR.dx=0;joyR.dy=0;joyR.t0=performance.now()/1000;
+  joyR.dx=0;joyR.dy=0;joyR.t0=performance.now()/1000;joyR.charge=0;
   aimMouseX=aimPrevX=t.clientX;aimMouseY=aimPrevY=t.clientY;
-  joyBase2.style.left=(t.clientX-55)+'px';joyBase2.style.top=(t.clientY-55)+'px';
-  joyBase2.classList.add('on');joyKnob2.style.left='31px';joyKnob2.style.top='31px';
+  const R=joyBase2.offsetWidth/2||55, K=joyKnob2.offsetWidth/2||24;
+  joyR.R=R; joyR.K=K;
+  joyBase2.style.left=(t.clientX-R)+'px';joyBase2.style.top=(t.clientY-R)+'px';
+  joyBase2.classList.add('on');joyBase2.classList.remove('full','hot');
+  joyKnob2.style.left=(R-K)+'px';joyKnob2.style.top=(R-K)+'px';
+  joyRPaint('flat',0,0);
+  buzz(4);
 }
 function joyRMove(t){
   const dx=t.clientX-joyR.cx,dy=t.clientY-joyR.cy;
   joyR.dx=dx;joyR.dy=dy;
-  const len=Math.hypot(dx,dy),max=52,sc=len>max?max/len:1;
-  joyKnob2.style.left=(31+dx*sc*0.85)+'px';joyKnob2.style.top=(31+dy*sc*0.85)+'px';
+  const len=Math.hypot(dx,dy),max=TOUCH.stickMax,sc=len>max?max/len:1;
+  const R=joyR.R||55, K=joyR.K||24;
+  joyKnob2.style.left=(R-K+dx*sc*0.85)+'px';joyKnob2.style.top=(R-K+dy*sc*0.85)+'px';
   aimPrevX=aimMouseX;aimPrevY=aimMouseY;
   aimMouseX=t.clientX;aimMouseY=t.clientY;
   if(gamePhase==='playing'){
     aimTrail.push({x:t.clientX,y:t.clientY,life:1});
     if(aimTrail.length>40)aimTrail.shift();
   }
+  joyRPaint(joyRShotType(dx,dy), joyR.charge, len);
+}
+/* per-frame: hold time becomes charge, ring shows it */
+function joyRTick(dt){
+  if(!joyR.active){ hitCueEl.style.opacity=0; return; }
+  const held=performance.now()/1000-joyR.t0;
+  joyR.charge=clamp(held/TOUCH.chargeT,0,1);
+  const wasFull=joyBase2.classList.contains('full');
+  joyRPaint(joyRShotType(joyR.dx,joyR.dy), joyR.charge, Math.hypot(joyR.dx,joyR.dy));
+  if(!wasFull && joyR.charge>=0.999) buzz(9);      // "you're topped up" tick
+}
+function joyRClear(){
+  joyR.active=false;joyR.id=null;joyR.charge=0;
+  joyBase2.classList.remove('on','full','hot');
+  shotTagEl.classList.remove('on');
+  crFill.style.strokeDashoffset=CR_LEN;
+  hitCueEl.style.opacity=0;
 }
 function joyREnd(){
   if(!joyR.active)return;
   const dx=joyR.dx,dy=joyR.dy,len=Math.hypot(dx,dy);
   const held=performance.now()/1000-joyR.t0;
-  joyR.active=false;joyR.id=null;joyBase2.classList.remove('on');
+  const charge=clamp(held/TOUCH.chargeT,0,1);
+  joyRClear();
   if(gamePhase!=='playing')return;
-  if(len<14){ queueShot('flat'); return; }               // tap = classic timed shot
-  const aim=clamp(dx/80,-1,1);
-  let power=clamp(len/95,0.3,1), type='flat';
-  const vertical=Math.abs(dy)>Math.abs(dx)*0.9;
-  if(vertical&&dy<-40)type='lob';                        // swipe up
-  else if(vertical&&dy>40)type='slice';                  // swipe down
-  if(type==='flat'&&held<0.16&&len>40)power=Math.max(power,0.92);  // quick flick = rocket
+  // clean tap = classic pure-timing shot, aim steered by movement
+  if(len<TOUCH.dead && held<0.22){ queueShot('flat'); buzz(6); return; }
+  const aim=clamp(dx/TOUCH.aimSpan,-1,1);
+  const type=joyRShotType(dx,dy);
+  // two roads to power: yank it hard, or hold it long. whichever you did more of wins.
+  const flickPow=clamp(len/TOUCH.powerSpan,0,1);
+  let power=clamp(0.32+Math.max(flickPow,charge)*0.68,0.32,1);
+  if(type==='flat'&&held<0.16&&len>TOUCH.dead*1.4)power=Math.max(power,0.94); // snap flick = rocket
   aimFxRelease(power);
   queueShot(type, aim, power);
+  buzz(power>0.85?[3,22,9]:8);
 }
 addEventListener('touchstart',e=>{
   audio();
@@ -3438,18 +3609,22 @@ addEventListener('touchend',e=>{
 addEventListener('touchcancel',e=>{
   for(const t of e.changedTouches){
     if(joy.active&&t.identifier===joy.id)joyEnd();
-    if(joyR.active&&t.identifier===joyR.id){joyR.active=false;joyR.id=null;joyBase2.classList.remove('on');}
+    if(joyR.active&&t.identifier===joyR.id)joyRClear();
   }
 },{passive:true});
 // buttons
 function bindBtn(id,down,up){
   const el=document.getElementById(id);
-  el.addEventListener('touchstart',e=>{e.preventDefault();audio();down();},{passive:false});
+  el.addEventListener('touchstart',e=>{e.preventDefault();audio();buzz(7);down();},{passive:false});
   if(up)el.addEventListener('touchend',e=>{e.preventDefault();up();},{passive:false});
 }
+// specials keep the aim you're already holding on the stick, so DROP/SMASH mid-drag
+// place where you're pointing instead of snapping back to centre
+const heldAim=()=>joyR.active?clamp(joyR.dx/TOUCH.aimSpan,-1,1):null;
 bindBtn('btnHit',()=>queueShot('flat'));
-bindBtn('btnSmash',()=>queueShot('smash'));
-bindBtn('btnLob',()=>queueShot('lob'));
+bindBtn('btnSmash',()=>queueShot('smash',heldAim()));
+bindBtn('btnLob',()=>queueShot('lob',heldAim(),0.62));
+bindBtn('btnDrop',()=>queueShot('drop',heldAim(),0.34));
 bindBtn('btnDive',()=>{diveRequest=true;});
 bindBtn('btnSprint',()=>{sprintTouch=true;},()=>{sprintTouch=false;});
 
@@ -3679,10 +3854,10 @@ function playerHit(type,power,isServe){
   sndHit(power);
   fxHitBurst(ball.position,power);
   if(type==='smash'){camShake=0.5;fxPerfectFlash(ball.position);fxHitBurst(ball.position,1);
-    player.userData.blurFrames=6;showMsg('SMASH!! 💥',750);sndHit(1);}
+    player.userData.blurFrames=6;showMsg('SMASH!! 💥',750);sndHit(1);buzz([6,34,14]);}
   else if(power>0.8){camShake=0.35;fxPerfectFlash(ball.position);showMsg('NICE! 💥',700);
-    player.userData.blurFrames=5;}
-  else if(s.label)showMsg(s.label,700);
+    player.userData.blurFrames=5;buzz([4,26,10]);}
+  else { buzz(Math.round(5+power*7)); if(s.label)showMsg(s.label,700); }
   trailPts=[];
 }
 function rivalHit(){
@@ -3722,6 +3897,7 @@ function pointTo(who,reason){
     netSend({t:'point', winner: who==='player'?'host':'guest', reason:reason||''});
   }
   sndPoint();
+  buzz(who==='player'?[9,44,9,44,20]:[26]);   // win = little fanfare, loss = one flat thud
   // confetti burst near the winner's side
   const cpos=who==='player'
     ? new THREE.Vector3(player.position.x,1.6,player.position.z-1)
@@ -4367,10 +4543,33 @@ function animate(){
     }
   }
 
+  // ---- touch feedback layer ----
+  if(isTouch){
+    joyRTick(dt);
+    // strike-zone cue: how close the ball is to being hittable, 0..1
+    let cue=0, peak=false;
+    if(gamePhase==='playing'&&state==='flying'&&ballVel.z>0&&ball.position.z>-1){
+      const d=Math.hypot(ball.position.x-player.position.x, ball.position.z-player.position.z);
+      const reach=(P.dive>0)?2.3:1.5;
+      const hittable=ball.position.y<2.7&&ball.position.z>0.3;
+      cue=clamp(1-(d-reach)/3.2,0,1);
+      peak=hittable&&d<reach*1.08;
+      if(peak)cue=1;
+    }
+    hitCueEl.style.opacity=cue*0.9;
+    hitCueEl.classList.toggle('peak',peak);
+    joyBase2.classList.toggle('hot',peak&&joyR.active);
+    if(peak&&!hitCuePeaked){ hitCuePeaked=true; buzz(5); }   // one tap as it enters the zone
+    if(!peak)hitCuePeaked=false;
+    // dive cooldown wash so you stop mashing a dead button
+    btnDiveEl.classList.toggle('cool', P.diveCd>0||P.dive>0);
+  }
+
   // ---- player movement ----
   const inp=moveInput();
   const sprint=keys['ShiftLeft']||keys['ShiftRight']||sprintTouch
     ||(SETTINGS.mCtrl==='sticks'&&joy.active&&Math.hypot(joy.dx,joy.dy)>0.93);   // full push = sprint
+  if(isTouch)joyBase.classList.toggle('sprint',!!sprint&&joy.active);
   const maxSp=sprint?P.sprintSpeed:P.maxSpeed;
 
   if(P.diveCd>0)P.diveCd-=dt;
@@ -4738,7 +4937,7 @@ function startGame(){
   serveSide='player';
   resetBall();
   showMsg(isTouch
-    ?(SETTINGS.mCtrl==='sticks'?'Left stick move · flick right stick to serve! 🎾':'Joystick to move · HIT to serve! 🎾')
+    ?(SETTINGS.mCtrl==='sticks'?'Left stick moves · hold right to charge, release to hit 🎾':'Joystick to move · HIT to serve! 🎾')
     :(SETTINGS.pcCtrl==='mouse'?'WASD move · hold + release mouse to serve! 🎾':'WASD to move · click to serve! 🎾'),3200);
 }
 // mode tiles: CPU shows settings+PLAY, FRIENDS shows the room panel
