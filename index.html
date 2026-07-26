@@ -161,13 +161,26 @@
     font-family:'Space Mono','Courier New',monospace; color:var(--ink);
   }
   #menu.show { opacity:1; pointer-events:auto; }
+  /* dvh = the *visible* viewport. Without this the mobile URL bar hides ~60px of menu. */
+  @supports (height:100dvh){ #menu { height:100dvh; } }
   #menu.show #menuInner { transform:translateY(0); opacity:1; }
   #menuInner {
     position:relative; width:min(560px,92vw); margin:0 auto;
-    min-height:100%; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; padding:34px 0 26px;
+    min-height:100%; height:100%; max-height:100%;
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:flex-start; padding:34px 0 26px;
     transform:translateY(16px); opacity:0;
     transition:transform .6s cubic-bezier(.2,.9,.3,1), opacity .5s ease;
+    overflow-y:auto; overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; -ms-overflow-style:none;
+    overscroll-behavior:contain;
+  }
+  #menuInner::-webkit-scrollbar { width:0; height:0; display:none; }
+  /* auto spacers: perfectly centred when the menu fits, scrolls from the top when it
+     doesn't. justify-content:center makes overflow unreachable — this doesn't. */
+  #menuInner::before, #menuInner::after {
+    content:''; flex:1 0 0px; min-height:0; width:0; pointer-events:none;
   }
   #menu .titleWrap { padding:24px 40px; }
   #menu .clubTag {
@@ -270,7 +283,8 @@
     margin-top:16px; font-size:9px; letter-spacing:3px; color:rgba(34,44,56,0.45);
     text-transform:uppercase;
   }
-  @media (max-width:460px){
+  /* stacking costs vertical space — only do it when there is vertical space to spend */
+  @media (max-width:460px) and (min-height:620px){
     .modeRowWrap { flex-direction:column; }
     .settingsGrid { grid-template-columns:1fr; }
   }
@@ -643,7 +657,7 @@
   #loader .tip, #loadPctTxt { color:#fff !important; text-shadow:0 1px 4px rgba(40,90,140,0.5); }
   /* ============ COMPACT MENU: landscape phones (short viewports) ============ */
   @media (max-height:560px){
-    #menuInner { width:min(700px,96vw); padding:6px 16px 14px; margin:2px auto; }
+    #menuInner { width:min(700px,96vw); padding:6px 16px 10px; margin:0 auto; }
     .titleWrap { padding:4px 20px 0; }
     #menu .scrawl { font-size:clamp(26px, 9vh, 40px); }
     #menu .clubTag { font-size:8px; letter-spacing:5px; margin:2px 0 8px; }
@@ -658,6 +672,53 @@
     #menuControls { display:none; }          /* hints live on the pre-serve toast anyway */
     #menuFoot { display:none; }
     #menu.show .sIn { animation-duration:0.5s; }  /* snappier stagger on small screens */
+    #friendsPanel { margin-top:10px; }
+    .netBtn { padding:9px 0; margin:5px 0; font-size:11px; letter-spacing:2.5px; }
+    .netOr { margin:6px 0; font-size:9px; letter-spacing:3px; }
+    #joinCode { padding:9px 10px; font-size:13px; letter-spacing:4px; }
+    #btnJoin { flex:0 0 78px; }
+    #netStatus { margin-top:8px; min-height:15px; font-size:10px; }
+    #roomCodeBig { font-size:22px; letter-spacing:8px; margin-top:6px; }
+  }
+
+  /* ---- tier 2: most phones in landscape (≈430px and under) ---- */
+  @media (max-height:470px){
+    #menuInner { padding:4px 14px 8px; }
+    .titleWrap { padding:2px 16px 0; }
+    #menu .scrawl { font-size:clamp(20px, 7.5vh, 34px); }
+    #menu .clubTag { font-size:7px; letter-spacing:4px; margin:1px 0 6px; }
+    .modeRowWrap { gap:6px; }
+    .modeTile { padding:6px 5px 5px; border-radius:9px; }
+    .modeTile .mIcon { width:15px; height:15px; margin-bottom:2px; }
+    .modeTile .mName { font-size:9px; letter-spacing:1px; }
+    .settingsGrid { margin-top:6px; gap:5px 12px; }
+    .menuLabel { font-size:7px; letter-spacing:3px; margin-bottom:3px; gap:8px; }
+    .chip { padding:5px 0; font-size:9px; letter-spacing:1px; border-radius:7px; }
+    #btnPlay { padding:9px 0; font-size:12px; letter-spacing:3px; margin-top:7px; border-radius:8px; }
+    #friendsPanel { margin-top:7px; }
+    .netBtn { padding:7px 0; margin:4px 0; font-size:10px; letter-spacing:2px; }
+    .netOr { margin:4px 0; font-size:8px; letter-spacing:2.5px; }
+    #joinCode { padding:7px 8px; font-size:12px; letter-spacing:3px; }
+    #btnJoin { flex:0 0 68px; }
+    #netStatus { margin-top:6px; min-height:13px; font-size:9px; letter-spacing:2px; }
+    #roomCodeBig { font-size:18px; letter-spacing:6px; margin-top:5px; }
+  }
+
+  /* ---- tier 3: the small ones (SE-class, 320–375px tall in landscape) ---- */
+  @media (max-height:380px){
+    #menuInner { padding:2px 12px 6px; }
+    .titleWrap { padding:0 12px; }
+    #menu .scrawl { font-size:clamp(16px, 7vh, 26px); }
+    #menu .clubTag { display:none; }
+    .modeTile { padding:5px 4px 4px; }
+    .modeTile .mIcon { width:13px; height:13px; margin-bottom:1px; }
+    .modeTile .mName { font-size:8px; letter-spacing:0.8px; }
+    .settingsGrid { margin-top:5px; gap:4px 10px; }
+    .menuLabel { font-size:7px; margin-bottom:2px; }
+    .chip { padding:4px 0; font-size:8px; }
+    #btnPlay { padding:7px 0; font-size:11px; letter-spacing:2.5px; margin-top:5px; }
+    .netBtn { padding:6px 0; margin:3px 0; font-size:9px; }
+    #roomCodeBig { font-size:16px; letter-spacing:5px; }
   }
 </style>
 </head>
