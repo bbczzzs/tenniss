@@ -167,17 +167,22 @@
     left:auto; right:calc(22px + env(safe-area-inset-right,0px));
     color:#1d2a22;
   }
-  #joyBase2 .racket {
-    position:absolute; left:50%; top:50%; width:48px; height:48px;
-    margin:-24px 0 0 -24px; pointer-events:none; opacity:0.85;
-    transition:opacity .14s ease, transform .14s ease;
-  }
+  /* The racket IS the stick. It lives inside the knob, so every drag carries it
+     with your thumb instead of fading it out behind a separate dot. */
   #joyBase2 #joyKnob2 {
-    opacity:0; transform:scale(0.7);
-    transition:opacity .12s ease, transform .12s ease;
+    width:52px; height:52px; left:24px; top:24px;
+    background:#f5efe0; border:2.5px solid #1d2a22;
+    box-shadow:0 3px 10px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.5);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .12s ease, box-shadow .12s ease;
   }
-  #joyBase2.on .racket { opacity:0.14; transform:scale(0.85); }
-  #joyBase2.on #joyKnob2 { opacity:1; transform:scale(1); }
+  #joyBase2 .racket {
+    width:34px; height:34px; pointer-events:none; color:#1d2a22;
+    transform-origin:52% 58%;                  /* pivot near the grip, not the centre */
+    transition:transform .09s linear;
+  }
+  #joyBase2.on #joyKnob2 { box-shadow:0 5px 14px rgba(0,0,0,0.36), inset 0 2px 0 rgba(255,255,255,0.55); }
+  #joyBase2.full #joyKnob2 { background:var(--acc); }
 
   /* charge ring rides OUTSIDE the ink rim so it never fights the racket */
   #chargeRing {
@@ -193,7 +198,8 @@
   }
   #joyBase2.full #chargeRing .crFill { animation:crPulse .5s ease-in-out infinite; }
   @keyframes crPulse { 0%,100%{ opacity:1; stroke-width:5; } 50%{ opacity:0.68; stroke-width:7; } }
-  #joyBase2.hot { background:rgba(255,255,255,0.85); box-shadow:0 0 26px rgba(255,255,255,0.6), 3px 3px 0 rgba(29,42,34,0.34); }
+  #joyBase2.hot { box-shadow:0 0 26px rgba(255,255,255,0.7), 3px 3px 0 rgba(29,42,34,0.34); }
+  #joyBase2.hot #joyKnob2 { background:#ffffff; box-shadow:0 0 18px rgba(255,255,255,0.9); }
   .ghost { display:none !important; }
 
   /* ---------- action buttons ---------- */
@@ -219,13 +225,15 @@
   .mbtn.cool { opacity:0.34; }
   .touch .mbtn { display:flex; }
 
-  /* STICKS: three specials on a 108px arc from the pad centre.
-     Pad rim is 50px, charge ring 59px, button 24px -> 108 leaves 25px of air.
-     The old 92px arc left ONE pixel and the ring visibly touched them. */
+  /* STICKS: three specials on a 101px arc from the pad centre.
+     Pad rim 50 + charge ring 9 = 59, button radius 24, so the floor is 83.
+     92 was the original and left the ring literally touching. 110 was the
+     overcorrection. 101 gives 18px of air — clear of the ring, still one
+     thumb sweep from the pad. Change the three pairs below together. */
   .touch.sticks #btnHit, .touch.sticks #btnLob, .touch.sticks #btnSprint { display:none; }
-  .touch.sticks #btnSmash { right:calc(46px  + env(safe-area-inset-right,0px)); bottom:calc(158px + env(safe-area-inset-bottom,0px)); }
-  .touch.sticks #btnDive  { right:calc(110px + env(safe-area-inset-right,0px)); bottom:calc(140px + env(safe-area-inset-bottom,0px)); }
-  .touch.sticks #btnDrop  { right:calc(152px + env(safe-area-inset-right,0px)); bottom:calc(87px  + env(safe-area-inset-bottom,0px)); }
+  .touch.sticks #btnSmash { right:calc(44px  + env(safe-area-inset-right,0px)); bottom:calc(149px + env(safe-area-inset-bottom,0px)); }
+  .touch.sticks #btnDive  { right:calc(104px + env(safe-area-inset-right,0px)); bottom:calc(132px + env(safe-area-inset-bottom,0px)); }
+  .touch.sticks #btnDrop  { right:calc(143px + env(safe-area-inset-right,0px)); bottom:calc(83px  + env(safe-area-inset-bottom,0px)); }
 
   /* BUTTONS scheme: big HIT where the pad sits, the rest on a wider arc */
   .touch:not(.sticks) #btnHit { width:74px; height:74px;
@@ -241,9 +249,9 @@
   .touch.lefty #joyBase  { left:auto; right:calc(22px + env(safe-area-inset-right,0px)); }
   .touch.lefty #joyBase2 { right:auto; left:calc(22px + env(safe-area-inset-left,0px)); }
   .touch.lefty .mbtn { right:auto; }
-  .touch.lefty.sticks #btnSmash { left:calc(46px  + env(safe-area-inset-left,0px)); }
-  .touch.lefty.sticks #btnDive  { left:calc(110px + env(safe-area-inset-left,0px)); }
-  .touch.lefty.sticks #btnDrop  { left:calc(152px + env(safe-area-inset-left,0px)); }
+  .touch.lefty.sticks #btnSmash { left:calc(44px  + env(safe-area-inset-left,0px)); }
+  .touch.lefty.sticks #btnDive  { left:calc(104px + env(safe-area-inset-left,0px)); }
+  .touch.lefty.sticks #btnDrop  { left:calc(143px + env(safe-area-inset-left,0px)); }
   .touch.lefty:not(.sticks) #btnHit   { left:calc(35px  + env(safe-area-inset-left,0px)); }
   .touch.lefty:not(.sticks) #btnSmash { left:calc(44px  + env(safe-area-inset-left,0px)); }
   .touch.lefty:not(.sticks) #btnDive  { left:calc(112px + env(safe-area-inset-left,0px)); }
@@ -257,14 +265,15 @@
     #joyBase2 { left:auto; right:16px; }
     .touch.lefty #joyBase { left:auto; right:16px; }
     .touch.lefty #joyBase2 { right:auto; left:16px; }
-    #joyKnob, #joyKnob2 { width:40px; height:40px; left:23px; top:23px; }
+    #joyKnob { width:40px; height:40px; left:23px; top:23px; }
+    #joyBase2 #joyKnob2 { width:45px; height:45px; left:20.5px; top:20.5px; }
     #chargeRing { inset:-8px; width:102px; height:102px; }
-    #joyBase2 .racket { width:41px; height:41px; margin:-20.5px 0 0 -20.5px; }
+    #joyBase2 .racket { width:29px; height:29px; }
     .mbtn { width:42px; height:42px; border-width:2px; box-shadow:2.5px 2.5px 0 rgba(29,42,34,0.4); }
     .mbtn b { font-size:15px; }
-    .touch.sticks #btnSmash { right:36px;  bottom:134px; }
-    .touch.sticks #btnDive  { right:92px;  bottom:118px; }
-    .touch.sticks #btnDrop  { right:128px; bottom:72px;  }
+    .touch.sticks #btnSmash { right:35px;  bottom:127px; }
+    .touch.sticks #btnDive  { right:88px;  bottom:112px; }
+    .touch.sticks #btnDrop  { right:122px; bottom:68px;  }
     #hitCue { height:26vh; }
   }
 
@@ -1158,15 +1167,16 @@
     <circle class="crBg"   cx="64" cy="64" r="54"/>
     <circle class="crFill" cx="64" cy="64" r="54"/>
   </svg>
-  <svg class="racket" viewBox="0 0 48 48" aria-hidden="true">
-    <ellipse cx="20" cy="17" rx="12.5" ry="14.5" fill="none" stroke="currentColor" stroke-width="2.6"/>
-    <g stroke="currentColor" stroke-width="0.9" opacity="0.75">
-      <path d="M11 9.5 L11 25M15 6.5 L15 28M20 5.5 L20 29M25 6.5 L25 28M29 9.5 L29 25"/>
-      <path d="M9.5 11 L30.5 11M8.2 15 L31.8 15M8 19 L32 19M9 23 L31 23M11 27 L29 27"/>
-    </g>
-    <path d="M26.5 28.5 L38 42" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/>
-  </svg>
-  <div id="joyKnob2"></div>
+  <div id="joyKnob2">
+    <svg class="racket" viewBox="0 0 48 48" aria-hidden="true">
+      <ellipse cx="21" cy="18" rx="13" ry="15" fill="none" stroke="currentColor" stroke-width="2.8"/>
+      <g stroke="currentColor" stroke-width="0.95" opacity="0.72">
+        <path d="M12 10.5 L12 26M16 7.5 L16 29M21 6.5 L21 30M26 7.5 L26 29M30 10.5 L30 26"/>
+        <path d="M10.5 12 L31.5 12M9.2 16 L32.8 16M9 20 L33 20M10 24 L32 24M12 28 L30 28"/>
+      </g>
+      <path d="M27.5 29.5 L38 41" stroke="currentColor" stroke-width="4.4" stroke-linecap="round"/>
+    </svg>
+  </div>
 </div>
 <div id="shotTag">FLAT</div>
 <div id="btnSettings" role="button" aria-label="Settings">
@@ -3989,6 +3999,7 @@ const TOUCH = {
 };
 const SHOT_TINT={flat:'#dff05e',lob:'#4ecdc4',slice:'#b28dff',drop:'#ffd166',smash:'#ff7a3d'};
 const chargeRing=document.getElementById('chargeRing');
+const racketEl=document.querySelector('#joyBase2 .racket');
 const crFill=chargeRing.querySelector('.crFill');
 const shotTagEl=document.getElementById('shotTag');
 const hitCueEl=document.getElementById('hitCue');
@@ -4040,8 +4051,10 @@ function joyRMove(t){
   const dx=t.clientX-joyR.cx,dy=t.clientY-joyR.cy;
   joyR.dx=dx;joyR.dy=dy;
   const len=Math.hypot(dx,dy),max=TOUCH.stickMax,sc=len>max?max/len:1;
-  const R=joyR.R||56, K=joyR.K||25;
-  joyKnob2.style.left=(R-K+dx*sc*0.82)+'px';joyKnob2.style.top=(R-K+dy*sc*0.82)+'px';
+  const R=joyR.R||50, K=joyR.K||26;
+  joyKnob2.style.left=(R-K+dx*sc*0.70)+'px';joyKnob2.style.top=(R-K+dy*sc*0.70)+'px';
+  // the racket cants toward where you're aiming — reads as a swing being loaded
+  if(racketEl) racketEl.style.transform='rotate('+(clamp(dx/TOUCH.aimSpan,-1,1)*26).toFixed(1)+'deg)';
   aimPrevX=aimMouseX;aimPrevY=aimMouseY;
   aimMouseX=t.clientX;aimMouseY=t.clientY;
   if(gamePhase==='playing'){
@@ -4063,6 +4076,7 @@ function joyRClear(){
   joyR.active=false;joyR.id=null;joyR.charge=0;
   joyBase2.classList.remove('on','full','hot');
   joyHome(joyBase2,joyKnob2);
+  if(racketEl) racketEl.style.transform='rotate(0deg)';
   shotTagEl.classList.remove('on');
   crFill.style.strokeDashoffset=CR_LEN;
   hitCueEl.style.opacity=0;
