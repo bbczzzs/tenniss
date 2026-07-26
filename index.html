@@ -13,28 +13,79 @@
   canvas { display:block; }
   #hud {
     position:fixed; top:14px; left:50%; transform:translateX(-50%);
-    display:flex; align-items:center; gap:16px;
-    background:rgba(9,22,36,0.62); border:1px solid rgba(255,255,255,0.16);
-    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-    padding:8px 10px 8px 16px; border-radius:11px;
+    display:flex; align-items:center; gap:14px;
+    background:linear-gradient(180deg, rgba(20,40,62,0.62), rgba(9,22,36,0.68));
+    border:1px solid rgba(255,255,255,0.18);
+    backdrop-filter:blur(14px) saturate(1.4); -webkit-backdrop-filter:blur(14px) saturate(1.4);
+    padding:7px 14px; border-radius:14px;
     pointer-events:none; z-index:5;
     font-family:'Space Mono','Courier New',monospace;
-    box-shadow:0 6px 20px rgba(8,24,40,0.3);
+    --heat:0;
+    box-shadow:0 8px 26px rgba(8,24,40,0.34),
+               inset 0 1px 0 rgba(255,255,255,0.22),
+               0 0 calc(var(--heat) * 30px) rgba(255,138,60, calc(var(--heat) * 0.55));
+    transition:box-shadow .25s ease;
   }
+  /* glass shine along the top edge */
+  #hud::before {
+    content:''; position:absolute; inset:1px 1px auto 1px; height:42%;
+    border-radius:13px 13px 60% 60%/13px 13px 22px 22px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.13), transparent);
+    pointer-events:none;
+  }
+  .hudSide { display:flex; align-items:center; gap:6px; }
   #hud .hudName {
     font-size:9px; font-weight:700; letter-spacing:2.5px;
-    color:rgba(255,255,255,0.62); text-transform:uppercase; line-height:1;
+    color:rgba(255,255,255,0.6); text-transform:uppercase; line-height:1;
+    transition:color .2s ease;
   }
+  /* serve indicator — the HUD never told you whose serve it was */
+  #hud .srv {
+    width:6px; height:6px; border-radius:50%; flex:0 0 6px;
+    background:rgba(255,255,255,0.16); transition:background .2s ease, box-shadow .2s ease;
+  }
+  #hud.srvYou   [data-side="you"]   .srv,
+  #hud.srvRival [data-side="rival"] .srv {
+    background:var(--acc,#dff05e); box-shadow:0 0 8px rgba(223,240,94,0.85);
+    animation:srvPulse 1.6s ease-in-out infinite;
+  }
+  #hud.srvYou   [data-side="you"]   .hudName,
+  #hud.srvRival [data-side="rival"] .hudName { color:rgba(255,255,255,0.95); }
+  @keyframes srvPulse { 0%,100%{ opacity:1; } 50%{ opacity:0.45; } }
+
   #hud .score {
-    display:flex; align-items:center; gap:9px; line-height:1;
-    font-size:23px; font-weight:700; color:#fff; letter-spacing:0;
+    display:flex; align-items:center; gap:8px; line-height:1;
+    font-family:'Baloo 2','Space Mono',monospace;
+    font-size:26px; font-weight:800; color:#fff;
   }
   #hud .score span {
-    min-width:30px; padding:5px 0 6px; text-align:center;
-    background:rgba(255,255,255,0.10); border-radius:7px;
+    position:relative; min-width:34px; padding:4px 0 5px; text-align:center;
+    background:rgba(255,255,255,0.10); border-radius:9px;
+    border:1px solid rgba(255,255,255,0.10);
+    transition:background .28s ease, color .28s ease, transform .2s cubic-bezier(.2,1.6,.4,1), box-shadow .28s ease;
   }
-  #hud .score span.lead { background:var(--acc,#c8dc2e); color:#18220a; }
-  #hud .score i { font-style:normal; font-size:13px; color:rgba(255,255,255,0.35); }
+  #hud .score span.lead {
+    background:var(--acc,#dff05e); color:#18220a; border-color:var(--acc,#dff05e);
+    transform:translateY(-1px) scale(1.06);
+    box-shadow:0 4px 14px rgba(223,240,94,0.4);
+  }
+  /* the digit punches when it changes — a score should feel like it landed */
+  #hud .score span.pop { animation:scorePop .5s cubic-bezier(.2,1.7,.35,1); }
+  @keyframes scorePop {
+    0%   { transform:scale(1); }
+    28%  { transform:scale(1.42) rotate(-4deg); }
+    55%  { transform:scale(0.94) rotate(2deg); }
+    100% { transform:scale(1) rotate(0); }
+  }
+  #hud .score span.pop::after {          /* ring that snaps outward on the point */
+    content:''; position:absolute; inset:-4px; border-radius:12px;
+    border:2px solid var(--acc,#dff05e); animation:scoreRing .5s ease-out forwards;
+  }
+  @keyframes scoreRing {
+    0%   { transform:scale(0.8); opacity:0.9; }
+    100% { transform:scale(1.6); opacity:0; }
+  }
+  #hud .score .sep { font-style:normal; font-size:14px; color:rgba(255,255,255,0.3); }
   #msg {
     position:fixed; bottom:120px; left:50%; transform:translateX(-50%);
     background:rgba(45,106,79,0.88); color:#fffbe8; border-radius:14px;
@@ -51,16 +102,59 @@
   #power .fill { height:100%; width:0%; background:linear-gradient(90deg,#ffd166,#ff5f5f); border-radius:6px; }
 
   /* ---- Mobile HUD ---- */
-  #joyBase {
+  #joyBase, #joyBase2 {
     position:fixed; width:110px; height:110px; border-radius:50%;
-    background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.5);
-    display:none; z-index:8; pointer-events:none; backdrop-filter:blur(2px);
+    display:none; z-index:8; pointer-events:none;
+    background:radial-gradient(circle at 50% 42%, rgba(255,255,255,0.13) 0%, rgba(9,22,36,0.3) 68%, rgba(9,22,36,0.42) 100%);
+    border:1.5px solid rgba(255,255,255,0.42);
+    backdrop-filter:blur(7px) saturate(1.25); -webkit-backdrop-filter:blur(7px) saturate(1.25);
+    box-shadow:0 8px 26px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.26);
+    transition:border-color .14s ease, box-shadow .14s ease;
   }
-  #joyKnob {
-    position:absolute; width:48px; height:48px; border-radius:50%;
-    background:rgba(255,255,255,0.85); left:31px; top:31px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+  #joyKnob, #joyKnob2 {
+    position:absolute; width:48px; height:48px; border-radius:50%; left:31px; top:31px;
+    background:radial-gradient(circle at 42% 34%, #ffffff 0%, rgba(255,255,255,0.9) 46%, rgba(214,228,238,0.82) 100%);
+    box-shadow:0 3px 10px rgba(0,0,0,0.34), inset 0 -2px 4px rgba(9,22,36,0.16);
+    transition:background .12s ease;
   }
+  #joyKnob2 { background:radial-gradient(circle at 42% 34%, #f2ffa8 0%, rgba(223,240,94,0.94) 48%, rgba(186,205,66,0.86) 100%); }
+
+  /* ---- ghost sticks: teach where the controls live, then get out of the way ---- */
+  .ghost {
+    position:fixed; width:110px; height:110px; border-radius:50%;
+    z-index:6; pointer-events:none; display:none;
+    border:1.5px dashed rgba(255,255,255,0.34);
+    background:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.07), transparent 70%);
+    opacity:0; transition:opacity .45s ease;
+  }
+  .ghost::before {                       /* centre pip */
+    content:''; position:absolute; left:50%; top:50%; width:34px; height:34px;
+    margin:-17px 0 0 -17px; border-radius:50%;
+    background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.3);
+  }
+  .ghost em {                            /* label under the ring */
+    position:absolute; left:50%; top:calc(100% + 9px); transform:translateX(-50%);
+    font-family:'Space Mono','Courier New',monospace; font-style:normal;
+    font-size:8.5px; font-weight:700; letter-spacing:2.5px; white-space:nowrap;
+    color:rgba(255,255,255,0.62); text-shadow:0 1px 4px rgba(0,0,0,0.55);
+  }
+  /* only while idle, only while still learning, never once a stick is live */
+  .touch.teaching #ghostL { display:block; }
+  .touch.teaching.sticks #ghostR { display:block; }
+  .touch.teaching.idleHint .ghost { opacity:1; }
+  #ghostL { left:clamp(26px, 9%, 96px);  bottom:clamp(38px, 20%, 116px); }
+  #ghostR { right:clamp(178px, 27%, 320px); bottom:clamp(38px, 20%, 116px); }
+  /* the right one breathes — it's the one nobody finds on their own */
+  .touch.teaching.idleHint #ghostR { animation:ghostBreathe 2.4s ease-in-out infinite; }
+  @keyframes ghostBreathe {
+    0%,100% { transform:scale(1);    border-color:rgba(255,255,255,0.3);  }
+    50%     { transform:scale(1.06); border-color:rgba(223,240,94,0.7); }
+  }
+  #ghostR .gRing { position:absolute; inset:-9px; width:128px; height:128px; opacity:0.5; }
+  #ghostR .gRing circle { fill:none; stroke:rgba(223,240,94,0.45); stroke-width:3;
+    stroke-dasharray:80 260; stroke-linecap:round; transform-origin:50% 50%;
+    animation:gSweep 2.4s cubic-bezier(.5,0,.5,1) infinite; }
+  @keyframes gSweep { 0%{ transform:rotate(-90deg); } 100%{ transform:rotate(270deg); } }
   /* ---------- touch action buttons: dark glass + accent hairline ---------- */
   .mbtn {
     position:fixed; border-radius:50%; z-index:8; display:none;
@@ -378,7 +472,7 @@
     background:radial-gradient(120% 95% at 50% 45%, transparent 62%, rgba(10,16,26,0.28) 100%);
   }
   @media (pointer:fine){
-    canvas { filter:saturate(1.07) contrast(1.03); }  /* light color grading, desktop only */
+    canvas { filter:saturate(0.98) contrast(0.99) brightness(1.015); }  /* the grade lives in the shader now */
   }
   /* ============ SUNNY SKY + LIQUID GLASS — loader + menu ============ */
   #loader, #menu {
@@ -529,14 +623,7 @@
   @media (max-height:640px){ .heroBall{display:none;} .decoBottom{height:110px;} #menuInner{padding-bottom:18px;} }
   /* ---- aim stick (right thumb) ---- */
   #joyBase2 {
-    position:fixed; width:110px; height:110px; border-radius:50%;
-    background:rgba(223,240,94,0.12); border:2px solid rgba(223,240,94,0.55);
-    display:none; z-index:8; pointer-events:none; backdrop-filter:blur(2px);
-  }
-  #joyKnob2 {
-    position:absolute; width:48px; height:48px; border-radius:50%;
-    background:rgba(223,240,94,0.9); left:31px; top:31px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.35);
+    border-color:rgba(223,240,94,0.5);
   }
   .touch #joyBase2.on { display:block; }
   /* dual-sticks mode: the stick covers flat/lob/slice, so only the three
@@ -545,6 +632,20 @@
   .touch.sticks #btnSmash { right:calc(26px  + env(safe-area-inset-right,0px)); bottom:calc(128px + env(safe-area-inset-bottom,0px)); }
   .touch.sticks #btnDive  { right:calc(92px  + env(safe-area-inset-right,0px)); bottom:calc(92px  + env(safe-area-inset-bottom,0px)); }
   .touch.sticks #btnDrop  { right:calc(128px + env(safe-area-inset-right,0px)); bottom:calc(26px  + env(safe-area-inset-bottom,0px)); }
+
+  /* ---------- left-handed: mirror the whole touch layer ---------- */
+  .touch.lefty .mbtn { right:auto; }
+  .touch.lefty #btnHit    { left:calc(20px  + env(safe-area-inset-left,0px)); }
+  .touch.lefty #btnSmash  { left:calc(114px + env(safe-area-inset-left,0px)); }
+  .touch.lefty #btnDive   { left:calc(96px  + env(safe-area-inset-left,0px)); }
+  .touch.lefty #btnLob    { left:calc(24px  + env(safe-area-inset-left,0px)); }
+  .touch.lefty #btnDrop   { left:calc(168px + env(safe-area-inset-left,0px)); }
+  .touch.lefty #btnSprint { left:auto; right:calc(26px + env(safe-area-inset-right,0px)); }
+  .touch.lefty.sticks #btnSmash { left:calc(26px  + env(safe-area-inset-left,0px)); }
+  .touch.lefty.sticks #btnDive  { left:calc(92px  + env(safe-area-inset-left,0px)); }
+  .touch.lefty.sticks #btnDrop  { left:calc(128px + env(safe-area-inset-left,0px)); }
+  .touch.lefty #ghostL { left:auto;  right:clamp(26px, 9%, 96px); }
+  .touch.lefty #ghostR { right:auto; left:clamp(178px, 27%, 320px); }
 
   /* ---------- charge ring on the aim stick ---------- */
   #chargeRing {
@@ -599,59 +700,106 @@
   /* ---- settings ---- */
   #btnSettings {
     position:fixed; top:14px; right:14px; z-index:60;
-    width:42px; height:42px; display:flex; align-items:center; justify-content:center;
-    font-size:20px; line-height:1; color:#fff; cursor:pointer; user-select:none;
-    /* dark fill, not translucent white: the old one vanished against a bright sky */
-    background:rgba(9,22,36,0.62);
-    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,0.22); border-radius:50%;
-    box-shadow:0 4px 14px rgba(8,24,40,0.34);
-    transition:background .15s ease, border-color .15s ease, transform .35s ease;
+    width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+    color:rgba(255,255,255,0.9); cursor:pointer; user-select:none;
+    background:linear-gradient(180deg, rgba(20,40,62,0.6), rgba(9,22,36,0.7));
+    backdrop-filter:blur(12px) saturate(1.4); -webkit-backdrop-filter:blur(12px) saturate(1.4);
+    border:1px solid rgba(255,255,255,0.2); border-radius:50%;
+    box-shadow:0 6px 18px rgba(8,24,40,0.36), inset 0 1px 0 rgba(255,255,255,0.22);
+    transition:background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .12s ease;
+  }
+  #btnSettings svg {
+    width:21px; height:21px; fill:currentColor; display:block;
+    transition:transform .5s cubic-bezier(.3,.9,.3,1);
   }
   #btnSettings::after {
-    /* soft ring so it still separates if it lands on a dark object */
     content:''; position:absolute; inset:-3px; border-radius:50%;
     border:1px solid rgba(255,255,255,0.14); pointer-events:none;
   }
   #btnSettings:hover {
-    background:rgba(20,40,62,0.76); border-color:rgba(255,255,255,0.42);
-    transform:rotate(60deg);
+    background:linear-gradient(180deg, rgba(30,56,84,0.74), rgba(16,34,52,0.8));
+    border-color:rgba(255,255,255,0.44);
+    box-shadow:0 8px 22px rgba(8,24,40,0.42), inset 0 1px 0 rgba(255,255,255,0.3);
   }
-  #btnSettings:active { transform:rotate(60deg) scale(0.93); transition-duration:.08s; }
+  /* the gear turns, the button doesn't — cleaner than rotating the whole chip */
+  #btnSettings:hover svg { transform:rotate(120deg); }
+  #btnSettings:active { transform:scale(0.9); transition-duration:.07s; }
+  #btnSettings:active svg { transform:rotate(180deg); transition-duration:.25s; }
+  /* ring that snaps outward on press */
+  .gearRing {
+    position:absolute; inset:0; border-radius:50%; pointer-events:none;
+    border:2px solid var(--acc,#dff05e); opacity:0; transform:scale(1);
+  }
+  #btnSettings:active .gearRing { animation:gearPing .45s ease-out; }
+  @keyframes gearPing {
+    0%   { opacity:0.85; transform:scale(1); }
+    100% { opacity:0; transform:scale(1.65); }
+  }
   #setPanel {
     position:fixed; inset:0; z-index:200;
     background:rgba(5,14,9,0.72); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
-    display:flex; align-items:center; justify-content:center;
+    display:flex; align-items:center; justify-content:center; padding:14px;
   }
   #setPanel.hiddenSet { display:none; }
   .setBox {
-    width:min(430px,92vw); padding:26px 26px 20px;
+    width:min(460px,94vw); max-height:calc(100vh - 28px); padding:22px 22px 18px;
     background:rgba(255,255,255,0.22);
     backdrop-filter:blur(24px) saturate(1.7); -webkit-backdrop-filter:blur(24px) saturate(1.7);
-    border:1px solid rgba(255,255,255,0.55); border-radius:24px;
+    border:1px solid rgba(255,255,255,0.55); border-radius:22px;
     box-shadow:0 24px 60px rgba(0,0,0,0.3), inset 0 1.5px 1px rgba(255,255,255,0.7), inset 0 -1.5px 2px rgba(0,0,0,0.08);
     font-family:'Space Mono',monospace; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.3);
+    overflow-y:auto; overscroll-behavior:contain;
+    scrollbar-width:none; -ms-overflow-style:none;
   }
-  .setTitle { font-size:13px; letter-spacing:6px; margin-bottom:20px; text-align:center; color:#ffffff; }
-  .setRow { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
-  .setRow > span { font-size:10px; letter-spacing:2px; color:rgba(255,255,255,0.9); }
-  .setOpts { display:flex; gap:6px; }
+  @supports (max-height:100dvh){ .setBox { max-height:calc(100dvh - 28px); } }
+  .setBox::-webkit-scrollbar { width:0; display:none; }
+  .setTitle { font-size:13px; letter-spacing:6px; margin-bottom:4px; text-align:center; color:#ffffff; }
+  .setSub { font-size:8.5px; letter-spacing:3px; text-align:center; margin-bottom:18px;
+    color:rgba(255,255,255,0.55); text-transform:uppercase; }
+  /* section headers give the panel a spine instead of one long undifferentiated list */
+  .setSec {
+    display:flex; align-items:center; gap:10px; margin:16px 0 11px;
+    font-size:8.5px; font-weight:700; letter-spacing:3.5px; color:rgba(255,255,255,0.62);
+  }
+  .setSec::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.25); }
+  .setSec:first-of-type { margin-top:6px; }
+  .setRow { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:11px; }
+  .setRow > span { font-size:10px; letter-spacing:2px; color:rgba(255,255,255,0.92); }
+  .setRow small { display:block; font-size:8px; letter-spacing:1px; margin-top:3px;
+    color:rgba(255,255,255,0.5); text-transform:none; }
+  .setOpts { display:flex; gap:6px; flex:0 0 auto; }
   .setOpts .chip { font-size:10px; padding:8px 12px; cursor:pointer; letter-spacing:1px; }
-  .setHint { font-size:9px; line-height:1.7; letter-spacing:0.5px; color:rgba(255,255,255,0.75);
-    border-top:1px solid rgba(255,255,255,0.25); padding-top:12px; margin-top:6px; }
+  .setHint { font-size:9px; line-height:1.75; letter-spacing:0.5px; color:rgba(255,255,255,0.75);
+    border-top:1px solid rgba(255,255,255,0.25); padding-top:12px; margin-top:14px; }
+  .setHint b { color:#dff05e; font-weight:700; }
   #setPanel .chip {
     background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.55);
     color:#fff; border-radius:12px;
     backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     box-shadow:inset 0 1px 1px rgba(255,255,255,0.5);
+    transition:background .13s ease, color .13s ease, border-color .13s ease, transform .08s ease;
   }
+  #setPanel .chip:active { transform:scale(0.94); }
   #setPanel .chip.sel {
     background:#f4f4f2; color:#0e1a26;
     border-color:#f4f4f2; text-shadow:none;
   }
-  #setClose { display:block; width:100%; margin-top:16px; padding:11px 0; cursor:pointer; }
+  .setBtnRow { display:flex; gap:8px; margin-top:14px; }
+  #setReset { flex:0 0 34%; padding:12px 0; cursor:pointer; opacity:0.8; }
+  #setClose { flex:1; padding:12px 0; cursor:pointer; background:#dff05e; color:#0b1622; border-color:#dff05e; }
   body:not(.touch) .touchOnly { display:none; }
   .touch .pcOnly { display:none; }
+  /* touch: 44px minimum tap targets, and stack rows that would otherwise squash */
+  .touch .setOpts .chip { padding:11px 13px; font-size:10px; min-height:42px; }
+  .touch .setRow { margin-bottom:13px; }
+  @media (max-height:460px){
+    .setBox { padding:16px 18px 14px; border-radius:18px; }
+    .setTitle { font-size:11px; letter-spacing:4px; }
+    .setSub { margin-bottom:12px; }
+    .setSec { margin:11px 0 8px; }
+    .setRow { margin-bottom:9px; }
+    .touch .setOpts .chip { padding:8px 11px; min-height:36px; }
+  }
   /* ============ LIQUID GLASS ENGINE LAYERS ============ */
   .lgOn .modeTile, .lgOn .chip, .lgOn #btnPlay {
     position:relative; z-index:0;
@@ -820,9 +968,9 @@
   <p>Sunny Serve plays in landscape — turn your device sideways to step on court!</p>
 </div>
 <div id="hud">
-  <span class="hudName">You</span>
-  <div class="score"><span id="s1">0</span><i>—</i><span id="s2">0</span></div>
-  <span class="hudName right">Rival</span>
+  <div class="hudSide" data-side="you"><i class="srv"></i><span class="hudName">You</span></div>
+  <div class="score"><span id="s1">0</span><i class="sep">—</i><span id="s2">0</span></div>
+  <div class="hudSide right" data-side="rival"><span class="hudName">Rival</span><i class="srv"></i></div>
 </div>
 <div id="vignette"></div>
 <canvas id="aimFx" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:14;"></canvas>
@@ -832,6 +980,11 @@
 <div id="power"><div class="fill" id="powerFill"></div></div>
 
 <div id="hitCue"></div>
+<div class="ghost" id="ghostL"><em>MOVE</em></div>
+<div class="ghost" id="ghostR">
+  <svg class="gRing" viewBox="0 0 128 128" aria-hidden="true"><circle cx="64" cy="64" r="54"/></svg>
+  <em>HOLD &middot; AIM &middot; RELEASE</em>
+</div>
 <div id="joyBase"><div id="joyKnob"></div></div>
 <div class="mbtn" id="btnHit">HIT</div>
 <div class="mbtn" id="btnLob">LOB</div>
@@ -847,31 +1000,70 @@
   <div id="joyKnob2"></div>
 </div>
 <div id="shotTag">FLAT</div>
-<div id="btnSettings">&#9881;</div>
+<div id="btnSettings" role="button" aria-label="Settings">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8zm7.3 3.4c0 .42-.04.83-.1 1.23l2.03 1.55a.48.48 0 0 1 .12.62l-1.92 3.32a.48.48 0 0 1-.59.2l-2.39-.96c-.5.38-1.04.7-1.63.93l-.36 2.54a.48.48 0 0 1-.47.4h-3.84a.48.48 0 0 1-.47-.4l-.36-2.54c-.59-.24-1.13-.55-1.63-.93l-2.39.96a.48.48 0 0 1-.59-.2L2.4 15.4a.48.48 0 0 1 .12-.62l2.03-1.55a7.6 7.6 0 0 1 0-2.46L2.52 9.22a.48.48 0 0 1-.12-.62l1.92-3.32a.48.48 0 0 1 .59-.2l2.39.96c.5-.38 1.04-.7 1.63-.93l.36-2.54a.48.48 0 0 1 .47-.4h3.84c.24 0 .44.17.47.4l.36 2.54c.59.24 1.13.55 1.63.93l2.39-.96c.22-.08.47 0 .59.2l1.92 3.32a.48.48 0 0 1-.12.62l-2.03 1.55c.06.4.1.81.1 1.23z"/></svg>
+  <span class="gearRing" aria-hidden="true"></span>
+</div>
 <div id="setPanel" class="hiddenSet">
   <div class="setBox">
     <div class="setTitle">SETTINGS</div>
+    <div class="setSub">Garden Tennis Club</div>
+
+    <div class="setSec">CONTROLS</div>
     <div class="setRow touchOnly">
-      <span>MOBILE CONTROLS</span>
+      <span>SCHEME<small>Sticks = aim + charge. Buttons = tap to hit.</small></span>
       <div class="setOpts" data-key="mCtrl">
         <button class="chip" data-v="buttons">BUTTONS</button>
-        <button class="chip" data-v="sticks">DUAL STICKS</button>
+        <button class="chip" data-v="sticks">STICKS</button>
+      </div>
+    </div>
+    <div class="setRow touchOnly">
+      <span>HANDED<small>Swaps which thumb moves and which hits.</small></span>
+      <div class="setOpts" data-key="lefty">
+        <button class="chip" data-v="off">RIGHT</button>
+        <button class="chip" data-v="on">LEFT</button>
+      </div>
+    </div>
+    <div class="setRow touchOnly">
+      <span>CHARGE SPEED<small>How fast the ring fills to full power.</small></span>
+      <div class="setOpts" data-key="chargeSpd">
+        <button class="chip" data-v="slow">SLOW</button>
+        <button class="chip" data-v="normal">NORMAL</button>
+        <button class="chip" data-v="fast">FAST</button>
       </div>
     </div>
     <div class="setRow pcOnly">
-      <span>SHOT CONTROLS</span>
+      <span>SHOT CONTROLS<small>Mouse aim lets you place the ball exactly.</small></span>
       <div class="setOpts" data-key="pcCtrl">
-        <button class="chip" data-v="classic">CLASSIC CLICK</button>
+        <button class="chip" data-v="classic">CLASSIC</button>
         <button class="chip" data-v="mouse">MOUSE AIM</button>
       </div>
     </div>
+    <div class="setRow touchOnly">
+      <span>SHOW HINTS<small>Ghost rings marking where the sticks live.</small></span>
+      <div class="setOpts" data-key="hints">
+        <button class="chip" data-v="on">ON</button>
+        <button class="chip" data-v="off">OFF</button>
+      </div>
+    </div>
+
+    <div class="setSec">FEEL</div>
     <div class="setRow">
-      <span>SHAKE &amp; RUMBLE</span>
+      <span>SCREEN SHAKE</span>
       <div class="setOpts" data-key="shake">
         <button class="chip" data-v="on">ON</button>
         <button class="chip" data-v="off">OFF</button>
       </div>
     </div>
+    <div class="setRow touchOnly">
+      <span>RUMBLE<small>Haptic taps on contact and on big hits.</small></span>
+      <div class="setOpts" data-key="haptics">
+        <button class="chip" data-v="on">ON</button>
+        <button class="chip" data-v="off">OFF</button>
+      </div>
+    </div>
+
+    <div class="setSec">AUDIO &amp; VIDEO</div>
     <div class="setRow">
       <span>SOUND</span>
       <div class="setOpts" data-key="sound">
@@ -879,9 +1071,20 @@
         <button class="chip" data-v="off">OFF</button>
       </div>
     </div>
-    <div class="setHint touchOnly">DUAL STICKS: right stick aims &amp; charges &middot; release to hit &middot; swipe &uarr; lob &middot; swipe &darr; slice &middot; quick flick = rocket</div>
-    <div class="setHint pcOnly">MOUSE AIM: cursor aims left/right &middot; hold LMB to charge, release to hit &middot; RMB lob &middot; F/Q/E still work</div>
-    <button id="setClose" class="chip">CLOSE</button>
+    <div class="setRow">
+      <span>GRAPHICS<small>Lite drops the bloom pass — smoother on older phones.</small></span>
+      <div class="setOpts" data-key="gfx">
+        <button class="chip" data-v="lite">LITE</button>
+        <button class="chip" data-v="high">HIGH</button>
+      </div>
+    </div>
+
+    <div class="setHint touchOnly">STICKS &middot; left thumb moves, push all the way to sprint. Right thumb: <b>hold</b> to charge, <b>release</b> to hit. Swipe <b>&uarr;</b> lob, <b>&darr;</b> slice. Snap flick = rocket. The screen glows when the ball is in range.</div>
+    <div class="setHint pcOnly">MOUSE AIM &middot; cursor aims left/right, <b>hold LMB</b> to charge and release to hit. <b>RMB</b> lob &middot; <b>F</b> smash &middot; <b>E</b> drop &middot; <b>Q</b> slice &middot; <b>SPACE</b> dive &middot; <b>SHIFT</b> sprint.</div>
+    <div class="setBtnRow">
+      <button id="setReset" class="chip">RESET</button>
+      <button id="setClose" class="chip">DONE</button>
+    </div>
   </div>
 </div>
 
@@ -1019,14 +1222,34 @@
    Ball trail · landing indicator · particles · sound · mobile HUD
    ============================================================ */
 
+/* Palette — watercolour, not poster paint. Greens lean yellow-olive,
+   blues lean grey, nothing is fully saturated. The court went from
+   electric blue to soft clay: warm earth reads cosy against the lawn
+   and stops fighting the sky for attention. */
 const C = {
-  sky:0xaee7ff, fog:0xd6f0ff, grass:0x8cc46a, grassDk:0x74ad55,
-  court:0x4a86b8, courtOut:0x6cae77, line:0xf7f0e2,
-  wood:0xa9713f, woodDk:0x8a5a2e,
-  leaf1:0x59b93c, leaf2:0x8fd14f, leaf3:0x3f9e4d, trunk:0x9c6b3f,
-  cream:0xfff3d6, red:0xff5f5f, yellow:0xffd166, pink:0xff8fb1,
-  purple:0xb28dff, teal:0x4ecdc4, orange:0xff9f45, white:0xffffff,
-  mtn:0x9fc4e8, mtnSnow:0xf2fbff, skin:0xffd9b3,
+  sky:0x9fdcff, fog:0xd6f0ff, grass:0x84cf52, grassDk:0x63b83c,
+  court:0x3d8fd6, courtOut:0x63b83c, line:0xfff8e8,
+  wood:0xc07a3c, woodDk:0x9a5f2a,
+  /* five leaf tints, not three — tree lines look dull when every crown is the
+     same green. Range from deep pine to bright spring. */
+  leaf1:0x4fc42e, leaf2:0x9ae63f, leaf3:0x2f9e46, leaf4:0x6fd85c, leaf5:0x25864a,
+  trunk:0xa8703f,
+  cream:0xfff6dc, red:0xff5f5f, yellow:0xffd84d, pink:0xff8fb1,
+  purple:0xb47dff, teal:0x36d1c4, orange:0xffa03a, white:0xffffff,
+  /* mountains: blue-violet, not grey. Grey rock reads as cardboard at distance;
+     cool blue reads as air between you and it. */
+  mtn:0x8fb8e8, mtnSnow:0xffffff, skin:0xffd9b3,
+};
+
+/* ---- COURT COLOUR: flip this one word ----
+   'blue'  vivid hard court (default)   'clay'   warm terracotta
+   'teal'  tournament aqua              'purple' bold and unusual        */
+const COURT_PRESET = 'blue';
+const COURT_PRESETS = {
+  blue:   ['#3d8fd6', ['#3273b8','#5aa8ee','#2f66a8','#6bb6f2']],
+  clay:   ['#cf9873', ['#c68a63','#d9a684','#bd7f58','#e0b294']],
+  teal:   ['#2fa8a0', ['#278d86','#45c2b8','#1f7a74','#5ad4c8']],
+  purple: ['#7d63c8', ['#6b52b0','#9478dc','#5c46a0','#a68ce8']],
 };
 
 const renderer = new THREE.WebGLRenderer({ antialias:true });
@@ -1036,22 +1259,22 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;   // soft shadows
 renderer.outputEncoding = THREE.sRGBEncoding;        // sRGB output
 renderer.toneMapping = THREE.ACESFilmicToneMapping;  // ACES filmic
-renderer.toneMappingExposure = 1.06;   // slight lift: warm highlights bloom a touch under ACES                 // ~20% down from before
+renderer.toneMappingExposure = 1.07;
 renderer.physicallyCorrectLights = true;
 document.body.appendChild(renderer.domElement);
 renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xf6e6cc, 38, 190);   // warm haze; far enough to read the distant range
+scene.fog = new THREE.Fog(0xe9dcc4, 72, 300);   // court + near props stay fully clear; haze only softens the far range
 // gradient sky dome: zenith blue -> warm hazy horizon
 {
   const skyGeo = new THREE.SphereGeometry(210, 16, 12);
   const skyMat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite:false, fog:false,
     uniforms:{
-      top:{value:new THREE.Color(0x6fb7ff)},
-      mid:{value:new THREE.Color(0xaee2ff)},
-      hor:{value:new THREE.Color(0xffe6c4)},
+      top:{value:new THREE.Color(0x5aa8f0)},
+      mid:{value:new THREE.Color(0xa5dcff)},
+      hor:{value:new THREE.Color(0xffeccd)},
     },
     vertexShader:`varying vec3 vP; void main(){ vP=position;
       gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
@@ -1059,24 +1282,24 @@ scene.fog = new THREE.Fog(0xf6e6cc, 38, 190);   // warm haze; far enough to read
       uniform vec3 top,mid,hor;
       void main(){
         float h = normalize(vP).y;
-        vec3 c = h>0.25 ? mix(mid,top,smoothstep(0.25,0.9,h))
-                        : mix(hor,mid,smoothstep(-0.05,0.25,h));
+        vec3 c = h>0.18 ? mix(mid,top,smoothstep(0.18,1.0,h))
+                        : mix(hor,mid,smoothstep(-0.14,0.18,h));
         gl_FragColor = vec4(c,1.0);
       }`
   });
   const skyDome = new THREE.Mesh(skyGeo, skyMat);
   scene.add(skyDome);
 }
-const BASE_FOV=50;
+const BASE_FOV=48;
 const camera = new THREE.PerspectiveCamera(BASE_FOV, innerWidth/innerHeight, 0.1, 400);
 
 // ---------- Lights ----------
 // subtle ambient dome — cool sky bounce, green ground bounce (kept low for shadow contrast)
-scene.add(new THREE.HemisphereLight(0xc6e4ff, 0x7fb85c, 0.72));  // lowered: deeper shadows
+scene.add(new THREE.HemisphereLight(0xd2e6f6, 0x9ec277, 0.76));  // keep it low or shadows stop describing form
 // warm golden-hour key light
-const sun = new THREE.DirectionalLight(0xffc074, 4.3);
+const sun = new THREE.DirectionalLight(0xffcf95, 4.25);  // strong key: this is what gives the world shape
 // cool sky-blue fill from the opposite side: models get warm/cool contrast instead of flat gray shade
-const coolFill = new THREE.DirectionalLight(0x8fb8ff, 0.55);
+const coolFill = new THREE.DirectionalLight(0x9fb2e2, 0.62);   // violet fill: enough to tint shade, not enough to flatten it
 coolFill.position.set(28, 20, -26);
 scene.add(coolFill);
 sun.position.set(-30, 38, 24);
@@ -1086,7 +1309,7 @@ sun.shadow.mapSize.set(IS_TOUCH_EARLY?2048:4096,IS_TOUCH_EARLY?2048:4096);
 sun.shadow.camera.left=-45; sun.shadow.camera.right=45;
 sun.shadow.camera.top=45; sun.shadow.camera.bottom=-45;
 sun.shadow.camera.far=140; sun.shadow.bias=-0.0004;
-sun.shadow.radius = 7;   // softer PCF edge: hard shadows read harsh on the flat court
+sun.shadow.radius = 7;
 scene.add(sun);
 
 // visible sun: small layered additive glow — always renders bright, bloom finishes it
@@ -1110,10 +1333,11 @@ scene.add(sun);
 }
 
 function mat(color, opts={}){
-  // nudge saturation up ~8% while keeping the flat-shaded stylized look
+  // Watercolour treatment: desaturate and lift the darks. Painted backgrounds
+  // sit in a narrow high-key band — almost nothing is pure or truly dark.
   const c = new THREE.Color(color);
   const hsl = {}; c.getHSL(hsl);
-  c.setHSL(hsl.h, Math.min(1, hsl.s*1.08), hsl.l);
+  c.setHSL(hsl.h, Math.min(1, hsl.s*1.16), Math.min(0.97, hsl.l*1.02));
   return new THREE.MeshStandardMaterial(Object.assign(
     {color:c, flatShading:true, roughness:0.78+Math.random()*0.18, metalness:0}, opts));
 }
@@ -1129,10 +1353,10 @@ const lawnCanvas=document.createElement('canvas');
 lawnCanvas.width=64;lawnCanvas.height=128;
 {
   const lc=lawnCanvas.getContext('2d');
-  lc.fillStyle='#7ec850';lc.fillRect(0,0,64,64);
-  lc.fillStyle='#73bd47';lc.fillRect(0,64,64,64);
+  lc.fillStyle='#84cf52';lc.fillRect(0,0,64,64);
+  lc.fillStyle='#78c445';lc.fillRect(0,64,64,64);
   // grass speckle: tiny darker/lighter blades break up the flat green
-  const specks=['#6ab53f','#8ad35b','#77c24c','#65ad3a'];
+  const specks=['#6fbe3c','#96de62','#82cf4c','#66b134'];
   for(let i=0;i<420;i++){
     lc.fillStyle=specks[(Math.random()*specks.length)|0];
     lc.globalAlpha=0.5+Math.random()*0.5;
@@ -1142,7 +1366,7 @@ lawnCanvas.width=64;lawnCanvas.height=128;
 }
 const lawnTex=new THREE.CanvasTexture(lawnCanvas);
 lawnTex.wrapS=lawnTex.wrapT=THREE.RepeatWrapping;
-lawnTex.repeat.set(20,26);
+lawnTex.repeat.set(16,21);
 lawnTex.encoding=THREE.sRGBEncoding;
 lawnTex.magFilter=THREE.NearestFilter;   // crisp stripe edges, fits the flat-shaded look
 const ground = new THREE.Mesh(new THREE.CircleGeometry(160,40),
@@ -1170,9 +1394,9 @@ function acrylicTex(base, specks){
   tx.encoding=THREE.sRGBEncoding;
   return tx;
 }
-const courtTex=acrylicTex('#3d7dd8',['#3268b8','#5a94e4','#2f5fa8','#6ba2ec']);
+const courtTex=acrylicTex(...(COURT_PRESETS[COURT_PRESET]||COURT_PRESETS.blue));
 courtTex.repeat.set(4,8);
-const apronTex=acrylicTex('#54a35e',['#478f50','#63b56e','#3f8248']);
+const apronTex=acrylicTex('#5fb03f',['#54a034','#6ec24d','#4a8f2c']);
 apronTex.repeat.set(6,10);
 const apron = new THREE.Mesh(new THREE.BoxGeometry(COURT_W+7,0.3,COURT_L+9),
   new THREE.MeshStandardMaterial({map:apronTex,roughness:0.95,flatShading:true}));
@@ -1263,7 +1487,7 @@ function makeTree(scale=1){
   trunk.position.y=0.8*scale; trunk.castShadow=true; g.add(trunk);
   const fol=new THREE.Group();
   for(let i=0;i<3+(Math.random()*2|0);i++){
-    const b=new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.8,1.25)*scale,0),mat(pick([C.leaf1,C.leaf2,C.leaf3])));
+    const b=new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.8,1.25)*scale,0),mat(pick([C.leaf1,C.leaf2,C.leaf3,C.leaf4,C.leaf5])));
     b.position.set(rand(-0.55,0.55)*scale,(1.9+rand(0,1.1))*scale,rand(-0.55,0.55)*scale);
     b.castShadow=true; fol.add(b);
   }
@@ -1286,7 +1510,7 @@ for(let i=0;i<12;i++){
   if(z < (-30.5 + Math.sin(x*0.03)*13 + x*0.05))continue;   // nothing past the riverside fence
   const g=new THREE.Group();
   for(let j=0;j<3;j++){
-    const b=new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.35,0.6),0),mat(pick([C.leaf1,C.leaf3])));
+    const b=new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.35,0.6),0),mat(pick([C.leaf1,C.leaf3,C.leaf4,C.leaf5])));
     b.position.set(rand(-0.35,0.35),rand(0.25,0.5),rand(-0.35,0.35)); b.castShadow=true; g.add(b);
   }
   windTargets.push({obj:g,phase:rand(0,6.28),amp:0.02});
@@ -2468,7 +2692,7 @@ for (let i = 0; i < 8; i++) {
   if (Math.abs(pt.z - (-64 + Math.sin(pt.x*0.03)*13 + pt.x*0.05)) < 4.2) continue;   // railway keep-clear
   const bush = new THREE.Group();
   for (let j = 0; j < 3; j++) {
-    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.3, 0.55), 0), mat(pick([C.leaf1, C.leaf3])));
+    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.3, 0.55), 0), mat(pick([C.leaf1, C.leaf3, C.leaf4, C.leaf5])));
     b.position.set(rand(-0.3, 0.3), rand(0.2, 0.45), rand(-0.3, 0.3));
     b.castShadow = true;
     bush.add(b);
@@ -3231,7 +3455,7 @@ function fxUpdate(dt){
 }
 
 // ---- effect recipes (SIMPLE_FX aesthetic: chunky, short-lived, no explosions) ----
-const DUST_COL=[0xe8dcc0,0xf2ead2,0xd8cbae];
+const DUST_COL=[0xd9a279,0xe6b891,0xc98f66];   // clay court: dust kicks up warm, not chalky
 function fxDustPuff(pos,dir,n=5,spread=1.6){
   for(let i=0;i<n;i++){
     const v=new THREE.Vector3(rand(-1,1),rand(0.5,1.3),rand(-1,1));
@@ -3284,7 +3508,7 @@ function fxFireworkPop(){
 // future: clay courts — swap DUST_COL for clay tones via fxSetSurface('clay')
 const SURFACES={
   hard:[0xe8dcc0,0xf2ead2,0xd8cbae],
-  clay:[0xe8b26a,0xd89a54,0xc98a45],
+  clay:[0xd9a279,0xe6b891,0xc98f66],
 };
 function fxSetSurface(name){const c=SURFACES[name];if(c){DUST_COL.length=0;DUST_COL.push(...c);}}
 function fxSplash(pos){
@@ -3329,25 +3553,67 @@ let ballVel=new THREE.Vector3();
 let lastHitter=null, bounces=0, serveSide='player';
 let msgTimer=0, camShake=0;
 // ---------- Settings (persisted) ----------
-const SETTINGS={mCtrl:'sticks', pcCtrl:'mouse', shake:true, sound:true};   // aimed schemes by default on both
+const SETTINGS={mCtrl:'sticks', pcCtrl:'mouse', shake:true, sound:true,
+                lefty:false, haptics:true, hints:true, chargeSpd:'normal', gfx:'high'};
+const SETTINGS_DEFAULT=Object.assign({},SETTINGS);
 try{ Object.assign(SETTINGS, JSON.parse(localStorage.getItem('ss_settings')||'{}')); }catch(e){}
+// how many aim-stick pulls the player has done — ghost hints retire at TEACH_DONE
+let taught=0;
+try{ taught=parseInt(localStorage.getItem('ss_taught')||'0',10)||0; }catch(e){}
+const TEACH_DONE=6;
+function bumpTaught(){
+  if(taught>=TEACH_DONE)return;
+  taught++;
+  try{ localStorage.setItem('ss_taught',String(taught)); }catch(e){}
+  if(taught>=TEACH_DONE)applyHints();
+}
+function applyHints(){
+  document.body.classList.toggle('teaching', SETTINGS.hints && taught<TEACH_DONE);
+}
+let GFX_LITE=false;
 function saveSettings(){ try{localStorage.setItem('ss_settings',JSON.stringify(SETTINGS));}catch(e){} }
 function applySettings(){
   document.body.classList.toggle('sticks', SETTINGS.mCtrl==='sticks');
+  document.body.classList.toggle('lefty',  !!SETTINGS.lefty);
+  GFX_LITE = SETTINGS.gfx==='lite';
+  try{ renderer.setPixelRatio(Math.min(window.devicePixelRatio, GFX_LITE?1:2)); }catch(e){}
+  applyHints();
   document.querySelectorAll('.setOpts').forEach(o=>{
     const k=o.dataset.key;
-    const cur=(k==='shake'||k==='sound') ? (SETTINGS[k]?'on':'off') : SETTINGS[k];
+    const cur=(typeof SETTINGS[k]==='boolean') ? (SETTINGS[k]?'on':'off') : SETTINGS[k];
     o.querySelectorAll('.chip').forEach(c=>c.classList.toggle('sel', c.dataset.v===cur));
   });
 }
 const msgEl=document.getElementById('msg');
 const powerEl=document.getElementById('power'), powerFill=document.getElementById('powerFill');
+const hudEl=document.getElementById('hud');
 function hudMarkLead(){
   const a=document.getElementById('s1'), b=document.getElementById('s2');
   if(!a||!b)return;
   const x=+a.textContent, y=+b.textContent;
   a.classList.toggle('lead', x>y);
   b.classList.toggle('lead', y>x);
+}
+/* one place that writes the score, so the pop animation can never be forgotten */
+function hudScore(x,y){
+  const a=document.getElementById('s1'), b=document.getElementById('s2');
+  if(!a||!b)return;
+  [[a,x],[b,y]].forEach(([el,v])=>{
+    const changed = +el.textContent !== +v;
+    el.textContent=v;
+    if(changed){
+      el.classList.remove('pop');
+      void el.offsetWidth;              // reflow so the animation can retrigger
+      el.classList.add('pop');
+      setTimeout(()=>el.classList.remove('pop'),520);
+    }
+  });
+  hudMarkLead();
+}
+function hudServe(){
+  if(!hudEl)return;
+  hudEl.classList.toggle('srvYou',   serveSide==='player');
+  hudEl.classList.toggle('srvRival', serveSide==='rival');
 }
 function showMsg(t,ms=2000){msgEl.textContent=t;msgEl.classList.remove('hidden');msgTimer=ms/1000;}
 
@@ -3484,7 +3750,6 @@ const TOUCH = {
   stickMax:  52,    // visual clamp of the knob
   aimSpan:   72,    // px of horizontal drag for full left/right aim
   powerSpan: 58,    // px of drag for full flick power — matches the visual ring now
-  chargeT:   0.72,  // seconds of hold for full charge power
   swipeV:    36,    // px before a drag counts as a vertical swipe
 };
 const SHOT_TINT={flat:'#dff05e',lob:'#4ecdc4',slice:'#b28dff',drop:'#ffd166',smash:'#ff7a3d'};
@@ -3494,11 +3759,13 @@ const shotTagEl=document.getElementById('shotTag');
 const hitCueEl=document.getElementById('hitCue');
 const CR_LEN=2*Math.PI*54;
 
-/* haptics — rides the existing SCREEN SHAKE toggle so one switch kills all rumble */
+/* haptics — own toggle, but SHAKE OFF kills everything as a master switch */
 function buzz(pat){
-  if(!SETTINGS.shake)return;
+  if(!SETTINGS.shake || !SETTINGS.haptics)return;
   try{ navigator.vibrate && navigator.vibrate(pat); }catch(e){}
 }
+const CHARGE_T={slow:1.0, normal:0.72, fast:0.5};
+const chargeTime=()=>CHARGE_T[SETTINGS.chargeSpd]||CHARGE_T.normal;
 let hitCuePeaked=false;
 const btnDiveEl=document.getElementById('btnDive');
 
@@ -3533,6 +3800,7 @@ function joyRStart(t){
   joyBase2.classList.add('on');joyBase2.classList.remove('full','hot');
   joyKnob2.style.left=(R-K)+'px';joyKnob2.style.top=(R-K)+'px';
   joyRPaint('flat',0,0);
+  bumpTaught();
   buzz(4);
 }
 function joyRMove(t){
@@ -3553,7 +3821,7 @@ function joyRMove(t){
 function joyRTick(dt){
   if(!joyR.active){ hitCueEl.style.opacity=0; return; }
   const held=performance.now()/1000-joyR.t0;
-  joyR.charge=clamp(held/TOUCH.chargeT,0,1);
+  joyR.charge=clamp(held/chargeTime(),0,1);
   const wasFull=joyBase2.classList.contains('full');
   joyRPaint(joyRShotType(joyR.dx,joyR.dy), joyR.charge, Math.hypot(joyR.dx,joyR.dy));
   if(!wasFull && joyR.charge>=0.999) buzz(9);      // "you're topped up" tick
@@ -3569,7 +3837,7 @@ function joyREnd(){
   if(!joyR.active)return;
   const dx=joyR.dx,dy=joyR.dy,len=Math.hypot(dx,dy);
   const held=performance.now()/1000-joyR.t0;
-  const charge=clamp(held/TOUCH.chargeT,0,1);
+  const charge=clamp(held/chargeTime(),0,1);
   joyRClear();
   if(gamePhase!=='playing')return;
   // clean tap = classic pure-timing shot, aim steered by movement
@@ -3590,8 +3858,12 @@ addEventListener('touchstart',e=>{
   for(const t of e.changedTouches){
     const onBtn=t.target.classList.contains('mbtn')||t.target.closest&&t.target.closest('#setPanel,#btnSettings');
     if(onBtn)continue;
-    if(t.clientX<innerWidth*0.45&&!joy.active)joyStart(t);
-    else if(t.clientX>=innerWidth*0.45&&!joyR.active&&SETTINGS.mCtrl==='sticks')joyRStart(t);
+    // lefty flips which half does what; the move zone stays the slightly larger one
+    const frac=t.clientX/innerWidth;
+    const inMove = SETTINGS.lefty ? (frac>0.55) : (frac<0.45);
+    const inAim  = !inMove;
+    if(inMove&&!joy.active)joyStart(t);
+    else if(inAim&&!joyR.active&&SETTINGS.mCtrl==='sticks')joyRStart(t);
   }
 },{passive:true});
 addEventListener('touchmove',e=>{
@@ -3637,13 +3909,19 @@ bindBtn('btnSprint',()=>{sprintTouch=true;},()=>{sprintTouch=false;});
   gear.addEventListener('click',open);
   gear.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();open();},{passive:false});
   document.getElementById('setClose').addEventListener('click',close);
+  const resetBtn=document.getElementById('setReset');
+  const doReset=()=>{ Object.assign(SETTINGS,SETTINGS_DEFAULT); saveSettings(); applySettings(); buzz(14); };
+  resetBtn.addEventListener('click',doReset);
+  resetBtn.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();doReset();},{passive:false});
   panel.addEventListener('click',e=>{if(e.target===panel)close();});
   panel.querySelectorAll('.setOpts').forEach(o=>{
     o.querySelectorAll('.chip').forEach(c=>{
       const pickIt=()=>{
         const k=o.dataset.key,v=c.dataset.v;
-        if(k==='shake'||k==='sound')SETTINGS[k]=(v==='on'); else SETTINGS[k]=v;
-        saveSettings();applySettings();
+        // any setting that defaults to a boolean stays a boolean
+        if(typeof SETTINGS_DEFAULT[k]==='boolean')SETTINGS[k]=(v==='on'); else SETTINGS[k]=v;
+        if(k==='hints'&&v==='on'){ taught=0; try{localStorage.setItem('ss_taught','0');}catch(e){} }
+        saveSettings();applySettings();buzz(7);
       };
       c.addEventListener('click',pickIt);
       c.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();pickIt();},{passive:false});
@@ -3905,15 +4183,14 @@ function pointTo(who,reason){
   fxConfetti(cpos,12,false);
   spectatorsCheer();
   if(who==='player')score[0]++;else score[1]++;
-  document.getElementById('s1').textContent=score[0];
-  document.getElementById('s2').textContent=score[1];
-  hudMarkLead();
+  hudScore(score[0],score[1]);
   const ch=document.getElementById('ctrlHint');
   if(ch)ch.classList.add('gone');        // you've played a point; you know the keys
   drawScore(score[0],score[1]);
   (who==='player'?player:rival).userData.celebrate=1.15;   // quick fist-pump hops
   showMsg((reason?reason+' — ':'')+(who==='player'?'Point for you! 🎾':'Rival takes the point!'));
   serveSide = serveSide==='player' ? 'rival' : 'player';   // alternate every point
+  hudServe();
   landRing.visible=false;landDot.visible=false;
   if(score[0]>=WIN_SCORE||score[1]>=WIN_SCORE){
     showMsg(score[0]>score[1]?'🏆 You win the Garden Open!':'Rival wins… rematch!',3200);
@@ -3922,8 +4199,7 @@ function pointTo(who,reason){
     (score[0]>score[1]?player:rival).userData.celebrate=3.4;  // full victory dance
     score=[0,0];
     setTimeout(()=>{drawScore(0,0);
-      document.getElementById('s1').textContent=0;
-      document.getElementById('s2').textContent=0;},3000);
+      hudScore(0,0);},3000);
   }
   setTimeout(resetBall,1100);
 }
@@ -4253,8 +4529,7 @@ function netHandleMsg(m){
 function startNetGame(isHost){
   NET.mode=true; NET.isHost=isHost; NET.buf=[];
   score=[0,0];drawScore(0,0);
-  document.getElementById('s1').textContent=0;
-  document.getElementById('s2').textContent=0;
+  hudScore(0,0);
   hudMarkLead();
   {const ch=document.getElementById('ctrlHint'); if(ch)ch.classList.remove('gone');}
   document.getElementById('menu').classList.remove('show');
@@ -4360,7 +4635,7 @@ const bloomMat = new THREE.ShaderMaterial({
       for(int x=-1;x<=1;x++) for(int y=-1;y<=1;y++){
         vec3 c = texture2D(tScene, vUv + vec2(float(x),float(y))*px*2.0).rgb;
         float l = dot(c, vec3(0.299,0.587,0.114));
-        acc += c * smoothstep(0.72, 0.95, l);
+        acc += c * smoothstep(0.70, 0.94, l);
       }
       gl_FragColor = vec4(acc/9.0, 1.0);
     }`
@@ -4419,20 +4694,30 @@ const postMat = new THREE.ShaderMaterial({
           occ += step(0.0015, d0-linD(vUv+vec2(0., -o.y)));
           occ += step(0.0015, d0-linD(vUv+ o*0.7));
           occ += step(0.0015, d0-linD(vUv- o*0.7));
-          col *= 1.0 - (occ/6.0)*0.16*(1.0-d0);
+          col = mix(col, col*vec3(0.86,0.88,0.96), (occ/6.0)*0.20*(1.0-d0));
         }
       }
 
       // --- subtle bloom ---
-      col += texture2D(tBloom, vUv).rgb * 0.30;
+      col += texture2D(tBloom, vUv).rgb * 0.32;
 
-      // --- slight saturation lift ---
+      /* --- grade: keep saturation, just warm the lights and cool the shadows.
+         No white veil, no gamma lift — those two were what made it look milky. */
       float g = luma(col);
-      col = mix(vec3(g), col, 1.11);
+      /* VIBRANCE, not flat saturation: measure how colourful a pixel already is
+         and push the dull ones hardest. Distant hills and hedges get lifted;
+         the already-vivid greens and the ball don't blow out. */
+      float mx = max(col.r, max(col.g, col.b));
+      float mn = min(col.r, min(col.g, col.b));
+      float sat = clamp(mx - mn, 0.0, 1.0);
+      col = mix(vec3(g), col, 1.10 + (1.0 - sat)*0.34);
+      vec3 shadowTint = vec3(0.95, 0.97, 1.04);    // hint of violet in shade
+      vec3 highTint   = vec3(1.04, 1.01, 0.97);    // hint of warmth in light
+      col *= mix(shadowTint, highTint, smoothstep(0.15, 0.85, g));
 
       // --- vignette ---
       float v = distance(vUv, vec2(0.5));
-      col *= 1.0 - smoothstep(0.42, 0.85, v)*0.28;
+      col *= 1.0 - smoothstep(0.44, 0.88, v)*0.26;
 
       gl_FragColor = vec4(col, 1.0);
     }`
@@ -4442,7 +4727,7 @@ postQuad = new THREE.Mesh(quadGeo, postMat);
 postScene.add(postQuad);
 
 function renderFrame(){
-  if(!POST.enabled){ renderer.render(scene,camera); return; }
+  if(!POST.enabled || GFX_LITE){ renderer.render(scene,camera); return; }
   renderer.setRenderTarget(rtScene);
   renderer.render(scene,camera);
   // bloom pass
@@ -4543,9 +4828,15 @@ function animate(){
     }
   }
 
+  // HUD reacts to rally heat: the bar warms up as the rally escalates
+  if(hudEl) hudEl.style.setProperty('--heat', HEAT.v.toFixed(3));
+
   // ---- touch feedback layer ----
   if(isTouch){
     joyRTick(dt);
+    // ghosts are a teaching aid: visible only when nothing is being touched
+    document.body.classList.toggle('idleHint',
+      gamePhase==='playing' && !joy.active && !joyR.active);
     // strike-zone cue: how close the ball is to being hittable, 0..1
     let cue=0, peak=false;
     if(gamePhase==='playing'&&state==='flying'&&ballVel.z>0&&ball.position.z>-1){
@@ -4849,16 +5140,16 @@ function animate(){
     powerEl.style.opacity=0;
   }
   const behind=new THREE.Vector3(
-    player.position.x*0.55,
-    5.7,                                            // ~14% lower: bigger players, punchier rallies
-    player.position.z+7.4                           // ~10% closer
+    player.position.x*0.52,
+    6.25,
+    player.position.z+8.0
   );
-  behind.z=Math.max(behind.z, 8.7);                 // never clip through net/props
-  behind.y=Math.max(behind.y, 4.9);
+  behind.z=Math.max(behind.z, 9.3);                 // never clip through net/props
+  behind.y=Math.max(behind.y, 5.4);
   camPos.lerp(behind,Math.min(1,dt*5));
   const lookTarget=new THREE.Vector3(
     (player.position.x*0.5+ball.position.x*0.5)*0.6,
-    1.7+ball.position.y*0.1,                        // aimed nearer the horizon: mountains stay in frame
+    1.85+ball.position.y*0.1,
     Math.min(ball.position.z*0.35,2)
   );
   camLook.lerp(lookTarget,Math.min(1,dt*6));
@@ -4927,14 +5218,14 @@ function startGame(){
   const D={easy:{speed:5.0,reach:1.15,err:1.7},normal:{speed:6.4,reach:1.35,err:0.95},hard:{speed:7.8,reach:1.55,err:0.4}}[chosenDiff];
   AI.speed=D.speed;AI.reach=D.reach;AI.err=D.err;
   score=[0,0];drawScore(0,0);
-  document.getElementById('s1').textContent=0;
-  document.getElementById('s2').textContent=0;
+  hudScore(0,0);
   hudMarkLead();
   {const ch=document.getElementById('ctrlHint'); if(ch)ch.classList.remove('gone');}
   document.getElementById('menu').classList.remove('show');
   gamePhase='playing';
   camPos.copy(camera.position);   // hand the cinematic camera over smoothly
   serveSide='player';
+  hudServe();
   resetBall();
   showMsg(isTouch
     ?(SETTINGS.mCtrl==='sticks'?'Left stick moves · hold right to charge, release to hit 🎾':'Joystick to move · HIT to serve! 🎾')
