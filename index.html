@@ -1553,14 +1553,55 @@ scene.add(sun);
   });
 }
 
+// ---------- Ink wash: shared grain textures for painted-surface feel ----------
+// Near-white greyscale so it MULTIPLIES with each material's own colour instead
+// of replacing it. Four variants, shared across every mesh — costs 4 textures total.
+const INK = { strength: 1.0, variants: 4 };
+function inkWashTex(seed){
+  const S = 128;
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const g = cv.getContext('2d');
+  let s = seed*9301 + 49297;
+  const rnd = () => { s = (s*9301 + 49297) % 233280; return s/233280; };
+  g.fillStyle = '#ffffff'; g.fillRect(0,0,S,S);
+  // uneven wash — soft translucent blobs, light and dark
+  for(let i=0;i<34;i++){
+    g.globalAlpha = (0.020 + rnd()*0.045) * INK.strength;
+    g.fillStyle = rnd() < 0.55 ? '#000000' : '#ffffff';
+    g.beginPath();
+    g.ellipse(rnd()*S, rnd()*S, 10+rnd()*34, 8+rnd()*28, rnd()*3.14, 0, 6.2832);
+    g.fill();
+  }
+  // scratchy pigment streaks
+  g.globalAlpha = 0.05 * INK.strength; g.strokeStyle = '#000000'; g.lineWidth = 1;
+  for(let i=0;i<22;i++){
+    const x = rnd()*S, y = rnd()*S, len = 6+rnd()*22;
+    g.beginPath(); g.moveTo(x,y);
+    g.lineTo(x + (rnd()-0.5)*6, y + len);
+    g.stroke();
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(2,2);
+  t.encoding = THREE.sRGBEncoding;
+  return t;
+}
+const INK_TEX = [];
+for(let i=0;i<INK.variants;i++) INK_TEX.push(inkWashTex(i+1));
+let _inkIdx = 0;
+const nextInk = () => INK_TEX[(_inkIdx++) % INK_TEX.length];
+
 function mat(color, opts={}){
   // Watercolour treatment: desaturate and lift the darks. Painted backgrounds
   // sit in a narrow high-key band — almost nothing is pure or truly dark.
   const c = new THREE.Color(color);
   const hsl = {}; c.getHSL(hsl);
   c.setHSL(hsl.h, Math.min(1, hsl.s*1.16), Math.min(0.97, hsl.l*1.02));
-  return new THREE.MeshStandardMaterial(Object.assign(
-    {color:c, flatShading:true, roughness:0.78+Math.random()*0.18, metalness:0}, opts));
+  const base = {color:c, flatShading:true, roughness:0.78+Math.random()*0.18, metalness:0};
+  // give it a wash unless the caller supplied its own map
+  if(!opts.map) base.map = nextInk();
+  return new THREE.MeshStandardMaterial(Object.assign(base, opts));
 }
 const rand=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[(Math.random()*a.length)|0];
@@ -4930,12 +4971,18 @@ const postMat = new THREE.ShaderMaterial({
     px:{value:new THREE.Vector2()},
     camNear:{value:0.1}, camFar:{value:400},
     ssaoOn:{value: POST.ssao ? 1.0 : 0.0},
+    outlineAmt:{value: 0.85},                       // 0 = off
+    outlineCol:{value: new THREE.Color(0x1d2a22)},
+    grainAmt:{value: 0.055},                        // 0 = off
+    uTime:{value: 0},
   },
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
   fragmentShader:`
     varying vec2 vUv;
     uniform sampler2D tScene, tBloom, tDepth;
     uniform vec2 px; uniform float camNear, camFar, ssaoOn;
+    uniform float outlineAmt, grainAmt, uTime;
+    uniform vec3 outlineCol;
     float luma(vec3 c){ return dot(c, vec3(0.299,0.587,0.114)); }
     float linD(vec2 uv){
       float d = texture2D(tDepth, uv).x;
@@ -4977,6 +5024,29 @@ const postMat = new THREE.ShaderMaterial({
         }
       }
 
+      // --- ink outlines: depth Sobel with a wobbled sample offset ---
+      // The wobble is what separates "hand-drawn line" from "CAD line". It's
+      // quantised to ~8fps so the lines boil like animation cels rather than shimmer.
+      if(outlineAmt > 0.001){
+        float tq = floor(uTime * 8.0);
+        vec2 w = vec2(
+          fract(sin(dot(vUv*311.7 + tq, vec2(12.9898,78.233))) * 43758.5453),
+          fract(sin(dot(vUv*271.3 + tq, vec2(39.3468,11.135))) * 24634.6345)
+        );
+        vec2 wob = (w - 0.5) * px * 2.2;
+        vec2 o = px * 1.25;
+        float dC = linD(vUv + wob);
+        float dE = linD(vUv + wob + vec2( o.x, 0.0));
+        float dW = linD(vUv + wob - vec2( o.x, 0.0));
+        float dN = linD(vUv + wob + vec2( 0.0, o.y));
+        float dS = linD(vUv + wob - vec2( 0.0, o.y));
+        // relative difference keeps line weight even from foreground to horizon
+        float grad = (abs(dE-dW) + abs(dN-dS)) / max(dC, 0.0025);
+        float edge = smoothstep(0.035, 0.16, grad);
+        edge *= 1.0 - smoothstep(0.55, 0.95, dC);   // fade out on distant hills
+        col = mix(col, outlineCol, edge * outlineAmt);
+      }
+
       // --- subtle bloom ---
       col += texture2D(tBloom, vUv).rgb * 0.32;
 
@@ -4994,6 +5064,13 @@ const postMat = new THREE.ShaderMaterial({
       vec3 highTint   = vec3(1.04, 1.01, 0.97);    // hint of warmth in light
       col *= mix(shadowTint, highTint, smoothstep(0.15, 0.85, g));
 
+      // --- paper grain: screen-space, static-ish, unifies the palette ---
+      if(grainAmt > 0.001){
+        float gq = floor(uTime * 6.0);
+        float n = fract(sin(dot(vUv*vec2(1920.0,1080.0) + gq, vec2(12.9898,78.233))) * 43758.5453);
+        col *= 1.0 - grainAmt*0.5 + n*grainAmt;
+      }
+
       // --- vignette ---
       float v = distance(vUv, vec2(0.5));
       col *= 1.0 - smoothstep(0.44, 0.88, v)*0.26;
@@ -5004,6 +5081,19 @@ const postMat = new THREE.ShaderMaterial({
 postScene = new THREE.Scene();
 postQuad = new THREE.Mesh(quadGeo, postMat);
 postScene.add(postQuad);
+
+/* Live tuning from the browser console — no rebuild needed:
+     FX.outline(0)      turn ink lines off
+     FX.outline(1.2)    heavier lines
+     FX.grain(0.09)     more paper
+     FX.ink('#3a2f28')  change line colour
+   Note: none of this runs in Graphics=Lite, which bypasses post entirely. */
+window.FX = {
+  outline: v => postMat.uniforms.outlineAmt.value = v,
+  grain:   v => postMat.uniforms.grainAmt.value = v,
+  ink:     h => postMat.uniforms.outlineCol.value.set(h),
+  off:     () => { postMat.uniforms.outlineAmt.value = 0; postMat.uniforms.grainAmt.value = 0; },
+};
 
 function renderFrame(){
   if(!POST.enabled || GFX_LITE){ renderer.render(scene,camera); return; }
@@ -5019,6 +5109,7 @@ function renderFrame(){
   postMat.uniforms.tBloom.value = rtBloom.texture;
   postMat.uniforms.tDepth.value = rtScene.depthTexture;
   postMat.uniforms.px.value.set(1/rtScene.width, 1/rtScene.height);
+  postMat.uniforms.uTime.value = t;
   renderer.setRenderTarget(null);
   renderer.render(postScene, postCam);
 }
