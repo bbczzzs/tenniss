@@ -1407,6 +1407,17 @@
   font-size:10.5px; font-weight:590; letter-spacing:0.4px;
   backdrop-filter:var(--matBlur); -webkit-backdrop-filter:var(--matBlur);
 }
+
+/* right pad gets the racket back — it is the only thing telling the two pads
+   apart, and it rotates with aim, which the plain disc lost */
+#joyBase2 .racket {
+  display:block; width:27px; height:27px;
+  position:absolute; left:50%; top:50%; margin:-13.5px 0 0 -13.5px;
+  color:#12181c; filter:none;
+  transform-origin:50% 50%;
+}
+#joyBase2.full .racket { color:var(--acc); }
+#joyKnob2 { position:relative; }
 </style>
 </head>
 <body>
@@ -1458,20 +1469,13 @@
   </svg>
   <div id="joyKnob2">
     <svg class="racket" viewBox="0 0 48 48" aria-hidden="true">
-      <!-- bone outline pass: same geometry, fat stroke, drawn underneath -->
-      <g fill="none" stroke="#f5efe0" stroke-linecap="round">
-        <path d="M27 30 L38 41" stroke-width="9"/>
-        <ellipse cx="21" cy="18.5" rx="12.4" ry="14.2" stroke-width="8"/>
+      <!-- sits on the white knob, so no bone halo pass is needed — plain ink -->
+      <ellipse cx="21" cy="18.5" rx="12" ry="13.8" fill="none" stroke="currentColor" stroke-width="3.4"/>
+      <g stroke="currentColor" stroke-width="1.8" opacity="0.45" stroke-linecap="round">
+        <path d="M16.6 8.8 L16.6 28.2M25.4 8.8 L25.4 28.2"/>
+        <path d="M10.6 14.2 L31.4 14.2M10.6 22.8 L31.4 22.8"/>
       </g>
-      <!-- ink pass. The old version had ten 0.95px strings — sub-pixel at 50px,
-           so they rendered as grey mush. Four thick ones read as strings and
-           survive the downscale. -->
-      <path d="M27 30 L38 41" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
-      <ellipse cx="21" cy="18.5" rx="12.4" ry="14.2" fill="#f5efe0" stroke="currentColor" stroke-width="3.2"/>
-      <g stroke="currentColor" stroke-width="1.7" opacity="0.55" stroke-linecap="round">
-        <path d="M16.5 8.4 L16.5 28.6M25.5 8.4 L25.5 28.6"/>
-        <path d="M10.2 14 L31.8 14M10.2 23 L31.8 23"/>
-      </g>
+      <path d="M27 30 L37.5 40.5" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="round"/>
     </svg>
   </div>
 </div>
