@@ -1158,12 +1158,117 @@
     .netBtn { padding:6px 0; margin:3px 0; font-size:9px; }
     #roomCodeBig { font-size:16px; letter-spacing:5px; }
   }
+
+/* ============================================================================
+   DARK INK SKIN — overrides the cream paper UI.
+   Three things were reading as amateur, and cream was only one:
+     1. emoji icons          -> replaced with real SVG glyphs (see markup)
+     2. hard 4px offset shadows on every element -> soft ambient depth instead
+     3. cream fills on a bright court -> no contrast, so nothing had hierarchy
+   New rule: controls RECEDE until touched. The court is the subject; the UI
+   is a thin dark layer over it, and only the accent is allowed to shout.
+   ========================================================================== */
+:root {
+  --ui-bg:rgba(16,22,26,0.64);
+  --ui-bg-hi:rgba(16,22,26,0.86);
+  --ui-line:rgba(236,242,238,0.16);
+  --ui-line-hi:rgba(236,242,238,0.34);
+  --ui-fg:#eef3ef;
+  --ui-fg-dim:rgba(238,243,239,0.5);
+  --ui-shadow:0 6px 20px rgba(4,10,8,0.38);
+  --ui-blur:blur(14px) saturate(1.1);
+}
+
+/* ---------- HUD: one dark bar, no box-in-box ---------- */
+#hud {
+  top:12px; gap:0; border-radius:11px;
+  background:var(--ui-bg-hi); color:var(--ui-fg);
+  border:1px solid var(--ui-line);
+  box-shadow:var(--ui-shadow);
+  backdrop-filter:var(--ui-blur); -webkit-backdrop-filter:var(--ui-blur);
+}
+#hud::after { background:var(--acc); mix-blend-mode:screen; opacity:calc(var(--heat)*0.12); }
+.hudSide { background:transparent; padding:0 14px; }
+.hudSide[data-side="rival"] { border-left:1px solid var(--ui-line); }
+.hudSide[data-side="you"]   { border-right:1px solid var(--ui-line); }
+#hud .hudName { font-size:8.5px; letter-spacing:2.4px; color:var(--ui-fg-dim); }
+#hud.srvYou [data-side="you"] .hudName,
+#hud.srvRival [data-side="rival"] .hudName { color:var(--acc); }
+#hud .srv { border-color:var(--ui-line-hi); }
+#hud.srvYou [data-side="you"] .srv,
+#hud.srvRival [data-side="rival"] .srv { background:var(--acc); border-color:var(--acc); }
+#hud .score span { background:transparent; color:var(--ui-fg); min-width:38px; }
+/* leader reads by ACCENT, not by inverting a whole block */
+#hud .score span.lead { background:transparent; color:var(--acc); }
+#hud .score .sep { color:var(--ui-fg-dim); font-size:12px; }
+
+/* ---------- action buttons ---------- */
+.mbtn {
+  background:var(--ui-bg); color:var(--ui-fg);
+  border:1px solid var(--ui-line);
+  box-shadow:var(--ui-shadow);
+  backdrop-filter:var(--ui-blur); -webkit-backdrop-filter:var(--ui-blur);
+  transition:transform .09s ease, background .12s ease, border-color .12s ease, color .12s ease;
+}
+.mbtn b { display:flex; align-items:center; justify-content:center; font-size:0; }
+.mbtn b svg { width:21px; height:21px; display:block; }
+.mbtn em {
+  font-size:7.5px; letter-spacing:1.1px; margin-top:2px; color:var(--ui-fg-dim);
+}
+/* press: accent fill, and it scales instead of sliding into a fake shadow */
+.mbtn:active {
+  transform:scale(0.92); box-shadow:var(--ui-shadow);
+  background:var(--acc); color:var(--accInk); border-color:var(--acc);
+}
+.mbtn:active em { color:rgba(43,28,4,0.62); }
+.mbtn.cool { opacity:0.26; }
+
+/* ---------- sticks ---------- */
+#joyBase, #joyBase2 {
+  background:var(--ui-bg);
+  border:1px solid var(--ui-line);
+  box-shadow:var(--ui-shadow), inset 0 0 0 1px rgba(236,242,238,0.05);
+  backdrop-filter:var(--ui-blur); -webkit-backdrop-filter:var(--ui-blur);
+}
+#joyBase.on, #joyBase2.on { background:var(--ui-bg-hi); border-color:var(--ui-line-hi); }
+#joyBase2 { border-color:var(--ui-line); }
+.jArrow { border-top-color:var(--ui-fg-dim); border-right-color:var(--ui-fg-dim); }
+#joyBase.pUp .jArrow.up, #joyBase.pDn .jArrow.dn,
+#joyBase.pLf .jArrow.lf, #joyBase.pRt .jArrow.rt { border-color:var(--acc); }
+#joyBase.sprint {
+  border-color:var(--acc);
+  box-shadow:0 0 22px rgba(var(--accRGB),0.4), var(--ui-shadow);
+}
+#joyBase.sprint .jArrow { border-color:var(--acc); }
+#joyBase2.hot { border-color:var(--acc); box-shadow:0 0 24px rgba(var(--accRGB),0.42), var(--ui-shadow); }
+#joyBase2.hot #joyKnob2 { background:none; }
+#chargeRing .crBg { stroke:rgba(236,242,238,0.1); }
+
+/* racket knob flips light — ink on a dark pad was invisible */
+#joyBase2 .racket { color:var(--ui-fg); }
+#joyBase2.full .racket { color:var(--acc); }
+
+/* ---------- settings gear ---------- */
+#btnSettings {
+  background:var(--ui-bg); color:var(--ui-fg);
+  border:1px solid var(--ui-line); box-shadow:var(--ui-shadow);
+  backdrop-filter:var(--ui-blur); -webkit-backdrop-filter:var(--ui-blur);
+}
+#btnSettings:active { background:var(--acc); color:var(--accInk); border-color:var(--acc); transform:scale(0.94); }
+
+/* ---------- shot tag ---------- */
+#shotTag {
+  background:var(--ui-bg-hi); color:var(--ui-fg);
+  border:1px solid var(--ui-line-hi); box-shadow:var(--ui-shadow);
+  font-size:9px; letter-spacing:2px; padding:4px 9px; border-radius:6px;
+  backdrop-filter:var(--ui-blur); -webkit-backdrop-filter:var(--ui-blur);
+}
 </style>
 </head>
 <body>
 <div id="rotateOverlay">
   <div class="phone"></div>
-  <h2>Rotate your phone 🎾</h2>
+  <h2>Rotate your phone</h2>
   <p>Sunny Serve plays in landscape — turn your device sideways to step on court!</p>
 </div>
 <div id="hud">
@@ -1196,12 +1301,12 @@
     </svg>
   </div>
 </div>
-<div class="mbtn" id="btnHit"><b>🎾</b><em>HIT</em></div>
-<div class="mbtn" id="btnLob"><b>☁️</b><em>LOB</em></div>
-<div class="mbtn" id="btnDive"><b>⚡</b><em>DIVE</em></div>
-<div class="mbtn" id="btnDrop"><b>🍃</b><em>DROP</em></div>
-<div class="mbtn" id="btnSprint"><b>💨</b><em>RUN</em></div>
-<div class="mbtn" id="btnSmash"><b>💥</b><em>SMASH</em></div>
+<div class="mbtn" id="btnHit"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13.5" cy="11" r="5.5"/><path d="M9.6 7.1 A5.5 5.5 0 0 1 9.6 14.9"/><path d="M3 18h7M5 21.5h6"/></svg></b><em>HIT</em></div>
+<div class="mbtn" id="btnLob"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19 Q12 2 21 19"/><path d="M2 21h20"/><path d="M12 21v-4"/></svg></b><em>LOB</em></div>
+<div class="mbtn" id="btnDive"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 L9.5 16.5"/><path d="M20 13V6h-7"/><path d="M3.5 9.5h4M2.5 14h5M4 18.5h4"/></svg></b><em>DIVE</em></div>
+<div class="mbtn" id="btnDrop"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18 Q9 5 13.5 12.5 T20 19"/><path d="M2 21h20"/><circle cx="19" cy="19.4" r="1.6" fill="currentColor" stroke="none"/></svg></b><em>DROP</em></div>
+<div class="mbtn" id="btnSprint"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7l5 5-5 5M12 7l5 5-5 5"/></svg></b><em>RUN</em></div>
+<div class="mbtn" id="btnSmash"><b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5v12"/><path d="M7 9.5l5 5 5-5"/><path d="M4 19.5h16"/><path d="M6.5 22.5l1.5-2M17.5 22.5l-1.5-2"/></svg></b><em>SMASH</em></div>
 <div id="joyBase2">
   <svg id="chargeRing" viewBox="0 0 128 128" aria-hidden="true">
     <circle class="crBg"   cx="64" cy="64" r="54"/>
@@ -1432,7 +1537,7 @@
       </div>
     </div>
     <div id="friendsPanel">
-      <button class="netBtn" id="btnQuick" style="background:#1d2a22;border-color:#1d2a22;color:#f5efe0">⚡ QUICK MATCH</button>
+      <button class="netBtn" id="btnQuick" style="background:#1d2a22;border-color:#1d2a22;color:#f5efe0">QUICK MATCH</button>
       <div class="netOr">OR PLAY WITH A FRIEND</div>
       <button class="netBtn" id="btnCreate">+ CREATE ROOM</button>
       <div class="netOr">OR</div>
@@ -4436,7 +4541,7 @@ const SHOTS={
   lob:  {T:[1.6,1.9],  depth:[0.65,0.95], h:0.16, label:'Lob!'},
   drop: {T:[1.0,1.2],  depth:[0.08,0.25], h:0.16, label:'Drop shot!'},
   slice:{T:[1.15,1.35],depth:[0.45,0.85], h:0.16, label:'Slice!'},
-  smash:{T:[0.55,0.72], depth:[0.45,0.92], h:0.14, label:'SMASH!! 💥'},
+  smash:{T:[0.55,0.72], depth:[0.45,0.92], h:0.14, label:'SMASH!!'},
 };
 
 function playerHit(type,power,isServe){
@@ -4485,8 +4590,8 @@ function playerHit(type,power,isServe){
   sndHit(power);
   fxHitBurst(ball.position,power);
   if(type==='smash'){camShake=0.5;fxPerfectFlash(ball.position);fxHitBurst(ball.position,1);
-    player.userData.blurFrames=6;showMsg('SMASH!! 💥',750);sndHit(1);buzz([6,34,14]);}
-  else if(power>0.8){camShake=0.35;fxPerfectFlash(ball.position);showMsg('NICE! 💥',700);
+    player.userData.blurFrames=6;showMsg('SMASH!!',750);sndHit(1);buzz([6,34,14]);}
+  else if(power>0.8){camShake=0.35;fxPerfectFlash(ball.position);showMsg('NICE!',700);
     player.userData.blurFrames=5;buzz([4,26,10]);}
   else { buzz(Math.round(5+power*7)); if(s.label)showMsg(s.label,700); }
   trailPts=[];
@@ -4541,7 +4646,7 @@ function pointTo(who,reason){
   if(ch)ch.classList.add('gone');        // you've played a point; you know the keys
   drawScore(score[0],score[1]);
   (who==='player'?player:rival).userData.celebrate=1.15;   // quick fist-pump hops
-  showMsg((reason?reason+' — ':'')+(who==='player'?'Point for you! 🎾':'Rival takes the point!'));
+  showMsg((reason?reason+' — ':'')+(who==='player'?'Point for you!':'Rival takes the point!'));
   serveSide = serveSide==='player' ? 'rival' : 'player';   // alternate every point
   hudServe();
   landRing.visible=false;landDot.visible=false;
@@ -4966,7 +5071,7 @@ function startNetGame(isHost){
   camPos.copy(camera.position);
   serveSide = isHost ? 'player' : 'rival';
   resetBall();
-  showMsg(isHost?'OPPONENT CONNECTED — YOUR SERVE! 🎾':'CONNECTED — OPPONENT SERVES FIRST 🎾',3000);
+  showMsg(isHost?'OPPONENT CONNECTED — YOUR SERVE!':'CONNECTED — OPPONENT SERVES FIRST',3000);
 }
 function netInterpRival(){
   const b=NET.buf;
@@ -5743,8 +5848,8 @@ function startGame(){
   hudServe();
   resetBall();
   showMsg(isTouch
-    ?(SETTINGS.mCtrl==='sticks'?'Left stick moves · hold right to charge, release to hit 🎾':'Joystick to move · HIT to serve! 🎾')
-    :(SETTINGS.pcCtrl==='mouse'?'WASD move · hold + release mouse to serve! 🎾':'WASD to move · click to serve! 🎾'),3200);
+    ?(SETTINGS.mCtrl==='sticks'?'Left stick moves · hold right to charge, release to hit':'Joystick to move · HIT to serve!')
+    :(SETTINGS.pcCtrl==='mouse'?'WASD move · hold + release mouse to serve!':'WASD to move · click to serve!'),3200);
 }
 // mode tiles: CPU shows settings+PLAY, FRIENDS shows the room panel
 let chosenMode='cpu';
